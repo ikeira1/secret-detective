@@ -16,13 +16,14 @@ function initHost() {
         return;
     }
 
-    if (typeof firebase !== 'undefined') {
+    // الربط الصحيح المتوافق مع مكاتب Compat
+    try {
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         database = firebase.database();
-    } else {
-        alert("خطأ: لم يتم تحميل السيرفر بشكل صحيح.");
+    } catch (error) {
+        alert("خطأ في تحميل سيرفر فايربيس: " + error.message);
         return;
     }
 
@@ -30,20 +31,22 @@ function initHost() {
     document.getElementById('display-room-code').innerText = `رمز الروم: ${roomCode}`;
     document.getElementById('host-max-rounds').innerText = maxRounds;
 
+    // تهيئة الروم بكافة الأقسام المطلوبة منعاً للأخطاء
     database.ref('rooms/' + roomCode).set({
         hostName: hostName,
         maxRounds: maxRounds,
         currentRound: currentRound,
         secretWord: "",
         gameStatus: "lobby",
-        winnerWordPlayer: ""
+        winnerWordPlayer: "",
+        chat: { "system": { sender: "النظام", text: "تم إنشاء الغرفة بنجاح!" } }
     }).then(() => {
         document.getElementById('auth-screen').classList.add('d-none');
         document.getElementById('host-screen').classList.remove('d-none');
         listenToPlayers();
         listenToChallengeAnswers();
     }).catch((error) => {
-        alert("خطأ في الاتصال بالسيرفر: " + error.message);
+        alert("خطأ في الاتصال بقاعدة البيانات: " + error.message);
     });
 }
 
