@@ -6,7 +6,6 @@
     <title>🕵️‍♂️ شفرة المحقق السري</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* إخفاء أزرار التحكم بالتلميحات يدوياً تلقائياً */
         .hint-controls {
             opacity: 0;
             pointer-events: none;
@@ -14,14 +13,29 @@
             display: inline-flex;
             gap: 4px;
         }
-        /* إظهار الأزرار فقط عند تمرير الماوس فوق كرت اللاعب */
         .player-card-hover:hover .hint-controls {
             opacity: 1;
             pointer-events: auto;
         }
+        .leave-btn-top {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
+
+    <button class="leave-btn-top" onclick="leaveRoomButton()">تسجيل الخروج/روم جديد 🚪</button>
 
     <div id="auth-screen" class="container">
         <header>
@@ -37,7 +51,7 @@
                     <input type="text" id="host-name" placeholder="مثلاً: أحمد">
                 </div>
                 <div class="form-group">
-                    <label>عدد الجولات (من 3 إلى 20):</label>
+                    <label>عدد الجولات:</label>
                     <input type="number" id="total-rounds" min="3" max="20" value="5">
                 </div>
                 <button type="button" onclick="initHost()" class="btn btn-host">إنشاء الروم وبدء الإدارة</button>
@@ -72,12 +86,22 @@
                             <span>الجولة الحالية: <strong id="host-current-round">1</strong> / <span id="host-max-rounds">-</span></span>
                         </div>
                         <div style="display: flex; gap: 10px; width: 100%;">
-                            <button type="button" onclick="nextRound()" class="btn btn-player" style="flex: 1; padding: 8px 15px;">الانتقال للجولة التالية ➡️</button>
+                            <button type="button" onclick="nextRound()" class="btn btn-player" style="flex: 1; padding: 8px 15px;">الجولة التالية ➡️</button>
                             <button type="button" onclick="resetFullGame()" class="btn" style="flex: 1; background-color: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 8px 15px;">إعادة تشغيل الجيم بالكامل 🔄</button>
                         </div>
                     </div>
                 </div>
+
                 <div class="card chat-card">
+                    <h3>💬 شات الجلسة العام (متاح للمدير وللاعبين)</h3>
+                    <div id="host-chat-box" class="messages-container"></div>
+                    <div class="form-group inline-group" style="margin-top: 10px;">
+                        <input type="text" id="host-chat-input" placeholder="اكتب رسالة أو توجيه للشباب في الشات...">
+                        <button type="button" onclick="sendHostChatMessage()" class="btn btn-host" style="width: auto; background: #23283d; color: #fff;">إرسال للكل</button>
+                    </div>
+                </div>
+
+                <div class="card chat-card" style="margin-top: 20px;">
                     <h3>📥 إجابات التحديات الواردة من اللاعبين (سري لك فقط)</h3>
                     <div id="host-challenges-box" class="messages-container"></div>
                 </div>
@@ -145,7 +169,7 @@
 
     <footer class="game-footer">
         <hr>
-        <p>استمتعت باللعبة? ادعم المستضيف من هنا 🤍</p>
+        <p>استمتعت باللعبة؟ ادعم المستضيف من هنا 🤍</p>
         <div class="social-links">
             <a href="https://creators.sa/keira" target="_blank" class="donation-btn">☕ دعم مادي (دكان تيب)</a>
             <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
