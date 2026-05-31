@@ -25,7 +25,7 @@
                     <label>عدد الجولات (من 3 إلى 20):</label>
                     <input type="number" id="total-rounds" min="3" max="20" value="5">
                 </div>
-                <button onclick="initHost()" class="btn btn-host">إنشاء الروم وبدء الإدارة</button>
+                <button type="button" onclick="initHost()" class="btn btn-host">إنشاء الروم وبدء الإدارة</button>
             </div>
 
             <div class="card player-card">
@@ -38,7 +38,7 @@
                     <label>رمز الغرفة (Room Code):</label>
                     <input type="text" id="room-code" placeholder="أدخل الرمز هنا">
                 </div>
-                <button onclick="initPlayer()" class="btn btn-player">دخول الروم</button>
+                <button type="button" onclick="initPlayer()" class="btn btn-player">دخول الروم</button>
             </div>
         </div>
     </div>
@@ -48,30 +48,24 @@
             <div class="main-panel">
                 <div class="card">
                     <h2>👑 لوحة تحكم المدير <span id="display-room-code" class="badge">رمز الروم: ----</span></h2>
-                    
                     <div class="form-group inline-group">
                         <input type="text" id="secret-word" placeholder="اكتب الكلمة أو الجملة السرية هنا">
-                        <button onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
+                        <button type="button" onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
                     </div>
-
                     <div class="status-bar">
                         <span>الجولة الحالية: <strong id="host-current-round">1</strong> / <span id="host-max-rounds">-</span></span>
-                        <button onclick="nextRound()" class="btn btn-player" style="width: auto; padding: 5px 15px;">الانتقال للجولة التالية ➡️</button>
+                        <button type="button" onclick="nextRound()" class="btn btn-player" style="width: auto; padding: 5px 15px;">الانتقال للجولة التالية ➡️</button>
                     </div>
                 </div>
-
                 <div class="card chat-card">
                     <h3>📥 إجابات التحديات الواردة من اللاعبين (سري لك فقط)</h3>
-                    <div id="host-challenges-box" class="messages-container">
-                        </div>
+                    <div id="host-challenges-box" class="messages-container"></div>
                 </div>
             </div>
-
             <div class="side-panel">
                 <div class="card">
                     <h3>👥 اللاعبين المتصلين</h3>
-                    <div id="host-players-list">
-                        </div>
+                    <div id="host-players-list"></div>
                 </div>
             </div>
         </div>
@@ -85,39 +79,36 @@
                     <p>حاول حزر الكلمة السرية (لك 3 محاولات فقط طوال الجيم)</p>
                     <div class="form-group inline-group">
                         <input type="text" id="guess-input" placeholder="اكتب تخمينك هنا...">
-                        <button onclick="submitGuess()" class="btn btn-player" style="width: auto;">تخمين</button>
+                        <button type="button" onclick="submitGuess()" class="btn btn-player" style="width: auto;">تخمين</button>
                     </div>
                     <div class="status-bar">
                         <span>المحاولات المتبقية: <strong id="remaining-attempts" class="text-danger">3</strong></span>
                         <span>الجولة: <strong id="player-current-round">1</strong></span>
                     </div>
                 </div>
-
                 <div class="card chat-card">
                     <h3>💬 شات الجلسة (للتمويه والحديث)</h3>
                     <div id="game-chat-box" class="messages-container"></div>
                     <div class="form-group inline-group" style="margin-top: 10px;">
                         <input type="text" id="chat-message-input" placeholder="اكتب رسالة للتمويه...">
-                        <button onclick="sendChatMessage()" class="btn btn-host" style="width: auto; background: #23283d; color: #fff;">إرسال</button>
+                        <button type="button" onclick="sendChatMessage()" class="btn btn-host" style="width: auto; background: #23283d; color: #fff;">إرسال</button>
                     </div>
                 </div>
             </div>
-
             <div class="side-panel">
                 <div class="card special-border">
                     <h3>📜 صندوق تلميحاتك السرية</h3>
-                    <p class="small-text">محد يشوف اللي هنا غيرك، لا تعلم أحد عشان ما تخسر نقاطك!</p>
+                    <p class="small-text">محد يشوف اللي هنا غيرك!</p>
                     <div id="player-hints-box" class="hints-container">
-                        <span class="empty-state">لم تصلك أي تلميحات بعد... فز بالتحدي لتكسب تلميحاً!</span>
+                        <span class="empty-state">لم تصلك أي تلميحات بعد...</span>
                     </div>
                 </div>
-
                 <div class="card">
                     <h3>🥊 إرسال حل التحدي للمدير</h3>
                     <div class="form-group">
                         <input type="text" id="challenge-answer-input" placeholder="اكتب جواب تحدي الجولة هنا...">
                     </div>
-                    <button onclick="submitChallengeAnswer()" class="btn btn-player">إرسال الجواب سرياً للمدير</button>
+                    <button type="button" onclick="submitChallengeAnswer()" class="btn btn-player">إرسال الجواب سرياً للمدير</button>
                 </div>
             </div>
         </div>
@@ -128,20 +119,18 @@
             <h2>🚨 تم اكتشاف الكلمة السرية!</h2>
             <p>الآن بدأت مرحلة التصويت لمعرفة الفائز بالمركز الثاني.</p>
             <h3>من الشخص الذي تعتقد أنه عرف الكلمة الصح؟ 🤔</h3>
-            <div id="vote-players-list" class="vote-grid">
-                </div>
-            <p class="small-text" style="margin-top: 20px;">المدير سيعلن النتائج والمركز الأول والثاني صوتياً بعد قليل!</p>
+            <div id="vote-players-list" class="vote-grid"></div>
         </div>
     </div>
 
     <footer class="game-footer">
         <hr>
-        <p>استمتعت باللعبة؟ ادعم المطور والمستضيف من هنا 🤍</p>
+        <p>استمتعت باللعبة؟ ادعم المستضيف من هنا 🤍</p>
         <div class="social-links">
-            <a href="https://creators.sa/keira" id="donation-link" class="donation-btn" target="_blank">☕ دعم مادي (دكان تيب)</a>
-            <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" id="tiktok-link" target="_blank">🎵 تيك توك</a>
-            <a href="https://www.youtube.com/@ikeira1" id="youtube-link" target="_blank">📺 يوتيوب</a>
-            <a href="https://www.twitch.tv/ikeira1" id="twitch-link" target="_blank">🎮 تويتش</a>
+            <a href="https://creators.sa/keira" target="_blank" class="donation-btn">☕ دعم مادي (دكان تيب)</a>
+            <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
+            <a href="https://www.youtube.com/@ikeira1" target="_blank">📺 يوتيوب</a>
+            <a href="https://www.twitch.tv/ikeira1" target="_blank">🎮 تويتش</a>
         </div>
     </footer>
 
