@@ -6,6 +6,62 @@
     <title>🕵️‍♂️ شفرة المحقق السري</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* شريط الحسابات الثابت (Sticky Navbar) أعلى الصفحة */
+        .sticky-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(90deg, #1e1b4b 0%, #0f172a 100%);
+            border-bottom: 2px solid #ff007c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            z-index: 9999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .sticky-navbar .nav-title {
+            color: #00ffcc;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .sticky-navbar .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .sticky-navbar .nav-links a {
+            color: #e2e8f0;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .sticky-navbar .nav-links a:hover {
+            color: #ff007c;
+        }
+        .sticky-navbar .nav-donation {
+            background: #ff007c;
+            color: white !important;
+            padding: 4px 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(255, 0, 124, 0.4);
+        }
+        .sticky-navbar .nav-leave-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        /* دفع محتوى الصفحة لأسفل حتى لا يتغطى بالشريط الثابت */
+        body {
+            padding-top: 70px !important;
+        }
         .hint-controls {
             opacity: 0;
             pointer-events: none;
@@ -17,25 +73,20 @@
             opacity: 1;
             pointer-events: auto;
         }
-        .leave-btn-top {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: bold;
-            z-index: 999;
-        }
     </style>
 </head>
 <body>
 
-    <button class="leave-btn-top" onclick="leaveRoomButton()">تسجيل الخروج/روم جديد 🚪</button>
+    <div class="sticky-navbar">
+        <div class="nav-title">🕵️‍♂️ شفرة المحقق السري</div>
+        <div class="nav-links">
+            <a href="https://creators.sa/keira" target="_blank" class="nav-donation">☕ دعم مادي (دكان تيب)</a>
+            <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
+            <a href="https://www.youtube.com/@ikeira1" target="_blank">📺 يوتيوب</a>
+            <a href="https://www.twitch.tv/ikeira1" target="_blank">🎮 تويتش</a>
+            <button class="nav-leave-btn" onclick="leaveRoomButton()">روم جديد 🚪</button>
+        </div>
+    </div>
 
     <div id="auth-screen" class="container">
         <header>
@@ -79,7 +130,7 @@
                     <h2>👑 لوحة تحكم المدير <span id="display-room-code" class="badge">رمز الروم: ----</span></h2>
                     <div class="form-group inline-group">
                         <input type="text" id="secret-word" placeholder="اكتب الكلمة أو الجملة السرية هنا">
-                        <button type="button" onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
+                        <button type="button" id="save-word-btn" onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
                     </div>
                     <div class="status-bar" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
                         <div>
@@ -93,7 +144,7 @@
                 </div>
 
                 <div class="card chat-card">
-                    <h3>💬 شات الجلسة العام (متاح للمدير وللاعبين)</h3>
+                    <h3>💬 شات الجلسة العام</h3>
                     <div id="host-chat-box" class="messages-container"></div>
                     <div class="form-group inline-group" style="margin-top: 10px;">
                         <input type="text" id="host-chat-input" placeholder="اكتب رسالة أو توجيه للشباب في الشات...">
@@ -169,13 +220,7 @@
 
     <footer class="game-footer">
         <hr>
-        <p>استمتعت باللعبة؟ ادعم المستضيف من هنا 🤍</p>
-        <div class="social-links">
-            <a href="https://creators.sa/keira" target="_blank" class="donation-btn">☕ دعم مادي (دكان تيب)</a>
-            <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
-            <a href="https://www.youtube.com/@ikeira1" target="_blank">📺 يوتيوب</a>
-            <a href="https://www.twitch.tv/ikeira1" target="_blank">🎮 تويتش</a>
-        </div>
+        <p>شفرة المحقق السري مخصصة لستريم كايرا 🤍</p>
     </footer>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

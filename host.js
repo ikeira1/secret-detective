@@ -30,7 +30,6 @@ function initHost() {
     document.getElementById('display-room-code').innerText = `رمز الروم: ${roomCode}`;
     document.getElementById('host-max-rounds').innerText = maxRounds;
 
-    // حفظ بيانات الهوست محلياً لمنع التكرار
     localStorage.setItem('sd_role', 'host');
     localStorage.setItem('sd_roomCode', roomCode);
     localStorage.setItem('sd_playerName', hostName);
@@ -49,23 +48,38 @@ function initHost() {
         listenToPlayers();
         listenToChallengeAnswers();
         listenForHostTransfer(); 
-        listenToChatForHost(); // تشغيل الشات للمدير
+        listenToChatForHost();
     }).catch((error) => {
         alert("خطأ في الاتصال بقاعدة البيانات: " + error.message);
     });
 }
 
 function saveSecretWord() {
-    const word = document.getElementById('secret-word').value.trim();
+    const wordInput = document.getElementById('secret-word');
+    const wordBtn = document.getElementById('save-word-btn');
+    const word = wordInput.value.trim();
+    
     if (!word) {
         alert("اكتب كلمة سرية أولاً!");
         return;
     }
+
+    // قفل الحقل والزر عند المدير وتثبيت الكلمة للرؤية فقط
+    wordInput.disabled = true;
+    wordBtn.disabled = true;
+    wordBtn.innerText = "🔒 تم التثبيت";
+    wordInput.style.backgroundColor = "#1e293b";
+
+    // تحديث قاعدة البيانات وإرسال إشعار للنظام لشات اللاعبين لتبدأ الجولة
     database.ref('rooms/' + roomCode).update({
         secretWord: word,
         gameStatus: "playing"
     });
-    alert("تم تثبيت الكلمة السرية وبدأ الجيم لايف عند الشباب!");
+
+    database.ref('rooms/' + roomCode + '/chat').push({
+        sender: "🚨 النظام",
+        text: "المدير حدد الكلمة السرية الحين! بدأت الجولة رسميًا.. ورونا شطارتكم بالتخمين! 🤔🔥"
+    });
 }
 
 function listenToPlayers() {
@@ -160,7 +174,6 @@ function listenToChallengeAnswers() {
     });
 }
 
-// تشغيل شات اللاعبين عند المدير وإمكانية الرد عليهم
 function listenToChatForHost() {
     database.ref('rooms/' + roomCode + '/chat').on('value', (snapshot) => {
         const chatBox = document.getElementById('host-chat-box');
@@ -210,17 +223,21 @@ function nextRound() {
     });
 }
 
-// تحويل المدير إلى لاعب عادي بنفس اسمه تلقائياً
+// دالة نقل الإدارة المطورة تماماً لمنع التعليق أو الطرد المتكرر اللانهائي
 function transferHost(targetPlayerId, targetPlayerName) {
-    if (!confirm(`هل أنت متأكد من نقل صلاحية المدير إلى ${targetPlayerName}؟ ستتحول أنت إلى لاعب.`)) return;
+    if (!confirm(`هل أنت متأكد من نقل صلاحية المدير إلى ${targetPlayerName}؟ ستتحول أنت تلقائيًا إلى لاعب عادي بنفس اسمك الحقيقي.`)) return;
 
-    const currentHostName = localStorage.getItem('sd_playerName') || "لاعب";
-    const myNewPlayerId = "_" + Math.random().toString(36).substr(2, 9);
+    const currentHostName = localStorage.getItem('sd_playerName') || "مدير سابق";
+    const myNewPlayerId = "p_" + Math.random().toString(36).substr(2, 9);
     
-    // حفظ البيانات الجديدة محلياً في جهازي قبل التعديل
+    // 1. مسح وتنظيف السجل المحلي الخاص بكوني هوست وتجهيزه كلاعب فوراً
+    localStorage.removeItem('sd_role');
+    localStorage.removeItem('sd_playerId');
+    
     localStorage.setItem('sd_role', 'player');
     localStorage.setItem('sd_playerId', myNewPlayerId);
 
+    // 2. رفع حسابي كلاعب عادي في قاعدة البيانات أولاً
     database.ref('rooms/' + roomCode + '/players/' + myNewPlayerId).set({
         name: currentHostName,
         attempts: 3,
@@ -228,6 +245,7 @@ function transferHost(targetPlayerId, targetPlayerName) {
         votedFor: "",
         manualHintCount: 0
     }).then(() => {
+        // 3. تحديث الروم لتمرير الهوست للشخص الآخر وتغيير الحالة لإعادة التحميل الآمن
         database.ref('rooms/' + roomCode).update({
             hostName: targetPlayerName,
             newHostId: targetPlayerId, 
@@ -239,19 +257,38 @@ function transferHost(targetPlayerId, targetPlayerName) {
 function listenForHostTransfer() {
     database.ref('rooms/' + roomCode + '/gameStatus').on('value', (snapshot) => {
         if (snapshot.val() === "host_transferred") {
-            // تفجير الصفحة برمجياً لإعادة قراءة الـ localStorage والتحول الفوري
             window.location.reload(); 
         }
     });
 }
 
+// دالة إعادة تشغيل الجيم المعدلة لتظهر الخيارات المطلوبة (تعديل الجولات والمدير)
 function resetFullGame() {
-    if (!confirm("هل تريد إعادة تشغيل الجيم بالكامل وتصفير النقاط والمحاولات؟")) return;
+    // 1. اختيار الجولات الجديد
+    let newRounds = prompt("كم تريد أن يكون عدد الجولات للجيم الجديد؟", maxRounds);
+    if (newRounds === null) return; // إلغاء الأمر
+    newRounds = parseInt(newRounds) || 5;
+
+    // 2. سؤال الإدارة
+    let stayHost = confirm("هل تريد الاستمرار كونك المدير؟\n(موافق/OK = استمرار، إلغاء/Cancel = ستقوم بنقل المدير لشخص آخر من القائمة)");
+
     currentRound = 1;
-    document.getElementById('host-current-round').innerText = currentRound;
-    
+    maxRounds = newRounds;
+    document.getElementById('host-current-round').innerText = 1;
+    document.getElementById('host-max-rounds').innerText = newRounds;
+
+    // فتح قفل الخانات لتمكين كتابة كلمة سرية جديدة
+    const wordInput = document.getElementById('secret-word');
+    const wordBtn = document.getElementById('save-word-btn');
+    wordInput.value = "";
+    wordInput.disabled = false;
+    wordInput.style.backgroundColor = "";
+    wordBtn.disabled = false;
+    wordBtn.innerText = "تثبيت الكلمة";
+
     database.ref('rooms/' + roomCode).update({
         currentRound: 1,
+        maxRounds: maxRounds,
         secretWord: "",
         gameStatus: "lobby",
         winnerWordPlayer: ""
@@ -269,6 +306,16 @@ function resetFullGame() {
                 manualHintCount: 0
             });
         }
-        alert("تم تصفير الروم بالكامل!");
+        
+        database.ref('rooms/' + roomCode + '/chat').push({
+            sender: "🚨 النظام",
+            text: `تمت إعادة تشغيل الجيم بالكامل لجولات عددها (${maxRounds}) جولات جديدة! بانتظار المدير يثبت الكلمة 👀✨`
+        });
+
+        if (!stayHost) {
+            alert("تم تصفير الروم، الرجاء الآن الضغط على زر 'تعيين كمدير 👑' بجانب اسم اللاعب الذي تريده ليتولى الإدارة!");
+        } else {
+            alert("تم تصفير الروم وبدء جيم جديد بنجاح وأنت المدير الحين!");
+        }
     });
 }

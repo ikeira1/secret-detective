@@ -8,18 +8,15 @@ let playerId = "";
 let playerName = "";
 let pAttempts = 3;
 
-// نظام الفحص التلقائي عند فتح الصفحة (هل المستخدم مسجل سابقاً؟)
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
         const savedRole = localStorage.getItem('sd_role');
         const savedRoom = localStorage.getItem('sd_roomCode');
         
         if (savedRole && savedRoom) {
-            // الربط التلقائي بفايربيس
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             const checkDb = firebase.database();
             
-            // التأكد أن الروم ما زال موجوداً في السيرفر
             checkDb.ref('rooms/' + savedRoom).once('value', (snap) => {
                 if (snap.exists()) {
                     pRoomCode = savedRoom;
@@ -40,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else {
                         playerId = localStorage.getItem('sd_playerId');
                         pDatabase = checkDb;
-                        // تأكيد وجود اللاعب داخل الروم
                         pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).once('value', (pSnap) => {
                             if (pSnap.exists()) {
                                 pAttempts = pSnap.val().attempts;
@@ -49,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 document.getElementById('player-screen').classList.remove('d-none');
                                 startPlayerListeners();
                             } else {
-                                localStorage.clear(); // مسح البيانات التالفة
+                                localStorage.clear();
                             }
                         });
                     }
@@ -58,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         }
-    }, 1000); // تأخير ثانية لضمان استقرار المكاتب
+    }, 1000); 
 });
 
 function initPlayer() {
@@ -84,9 +80,8 @@ function initPlayer() {
             return;
         }
 
-        playerId = "_" + Math.random().toString(36).substr(2, 9);
+        playerId = "p_" + Math.random().toString(36).substr(2, 9);
         
-        // حفظ البيانات في المتصفح للحماية من تسجيل الخروج المفاجئ
         localStorage.setItem('sd_role', 'player');
         localStorage.setItem('sd_roomCode', pRoomCode);
         localStorage.setItem('sd_playerId', playerId);
@@ -113,13 +108,16 @@ function startPlayerListeners() {
 
         document.getElementById('player-current-round').innerText = data.currentRound;
 
-        // إذا تم تحويل هذا اللاعب إلى هوست جديد
+        // دالة تحويل اللاعب الفورية لمدير آمنة ونظيفة 100% بدون أي تعليق
         if (data.gameStatus === "host_transferred" && data.newHostId === playerId) {
             pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).remove().then(() => {
-                alert("👑 مبروك! أصبحت مدير الروم الحالي الحين!");
+                alert("👑 مبروك! أصبحت مدير الروم الحالي الآن!");
                 
+                localStorage.removeItem('sd_role');
+                localStorage.removeItem('sd_playerId');
                 localStorage.setItem('sd_role', 'host');
-                window.location.reload(); // تنظيف الواجهة والتحول الكامل
+                
+                window.location.reload(); 
             });
             return;
         }
@@ -256,9 +254,8 @@ function openVoteScreen() {
     });
 }
 
-// زر مغادرة اختياري لتصفير الحساب الحقيقي لو تطلب الأمر
 function leaveRoomButton() {
-    if(confirm("هل تريد تسجيل الخروج ومسح بيانات الجلسة؟")) {
+    if(confirm("هل تريد تسجيل الخروج ومسح بيانات الجلسة بالكامل لإنشاء/دخول روم جديد؟")) {
         localStorage.clear();
         window.location.reload();
     }
