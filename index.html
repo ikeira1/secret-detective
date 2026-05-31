@@ -8,6 +8,7 @@
 </head>
 <body>
 
+    <!-- ==================== 1. شاشة الدخول وإنشاء الغرفة ==================== -->
     <div id="auth-screen" class="container">
         <header>
             <h1>🕵️‍♂️ شفرة المحقق السري</h1>
@@ -15,6 +16,7 @@
         </header>
 
         <div class="card-grid">
+            <!-- كرت المدير -->
             <div class="card host-card">
                 <h2>👑 إنشاء غرفة جديدة (المدير)</h2>
                 <div class="form-group">
@@ -28,6 +30,7 @@
                 <button type="button" onclick="initHost()" class="btn btn-host">إنشاء الروم وبدء الإدارة</button>
             </div>
 
+            <!-- كرت اللاعب -->
             <div class="card player-card">
                 <h2>🎮 الانضمام كلاعب</h2>
                 <div class="form-group">
@@ -43,6 +46,7 @@
         </div>
     </div>
 
+    <!-- ==================== 2. لوحة تحكم المدير (Host Dashboard) ==================== -->
     <div id="host-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
@@ -71,6 +75,7 @@
         </div>
     </div>
 
+    <!-- ==================== 3. واجهة اللاعب (Player Dashboard) ==================== -->
     <div id="player-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
@@ -114,6 +119,7 @@
         </div>
     </div>
 
+    <!-- ==================== 4. شاشة التصويت النهائي ==================== -->
     <div id="vote-screen" class="container d-none">
         <div class="card" style="max-width: 600px; margin: 0 auto;">
             <h2>🚨 تم اكتشاف الكلمة السرية!</h2>
@@ -123,6 +129,7 @@
         </div>
     </div>
 
+    <!-- ==================== 5. الهامش السفلي الثابت بحساباتك ==================== -->
     <footer class="game-footer">
         <hr>
         <p>استمتعت باللعبة؟ ادعم المستضيف من هنا 🤍</p>
@@ -134,8 +141,9 @@
         </div>
     </footer>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- ==================== 6. استدعاء المكاتب الحديثة والمتوافقة 100% ==================== -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <script src="config.js"></script>
     <script src="host.js"></script>
