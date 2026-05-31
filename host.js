@@ -1,5 +1,5 @@
 // ==========================================
-// ملف التحكم الخاص بمدير الجلسة (Host)
+// ملف التحكم الخاص بمدير الجلسة الحديث (Host)
 // ==========================================
 
 let database;
@@ -7,7 +7,6 @@ let roomCode = "";
 let currentRound = 1;
 let maxRounds = 5;
 
-// دالة تشغيل لوحة المدير عند الضغط على "إنشاء غرفة"
 function initHost() {
     const hostName = document.getElementById('host-name').value.trim();
     maxRounds = parseInt(document.getElementById('total-rounds').value) || 5;
@@ -17,42 +16,37 @@ function initHost() {
         return;
     }
 
-    // تشغيل الفايربيس بناءً على الإعدادات في config.js
     if (typeof firebase !== 'undefined') {
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         database = firebase.database();
     } else {
-        alert("خطأ: لم يتم تحميل مكتبة الفايربيس بشكل صحيح.");
+        alert("خطأ: لم يتم تحميل السيرفر بشكل صحيح.");
         return;
     }
 
-    // توليد رمز غرفة عشوائي من 4 أرقام
     roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     document.getElementById('display-room-code').innerText = `رمز الروم: ${roomCode}`;
     document.getElementById('host-max-rounds').innerText = maxRounds;
 
-    // إنشاء بيانات الروم في السيرفر المباشر
     database.ref('rooms/' + roomCode).set({
         hostName: hostName,
         maxRounds: maxRounds,
         currentRound: currentRound,
         secretWord: "",
-        gameStatus: "lobby", // الحالات: lobby, playing, voting
-        winnerWordPlayer: "" // من جاب الكلمة الصح
+        gameStatus: "lobby",
+        winnerWordPlayer: ""
+    }).then(() => {
+        document.getElementById('auth-screen').classList.add('d-none');
+        document.getElementById('host-screen').classList.remove('d-none');
+        listenToPlayers();
+        listenToChallengeAnswers();
+    }).catch((error) => {
+        alert("خطأ في الاتصال بالسيرفر: " + error.message);
     });
-
-    // الانتقال لشاشة المدير وإخفاء شاشة الدخول
-    document.getElementById('auth-screen').classList.add('d-none');
-    document.getElementById('host-screen').classList.remove('d-none');
-
-    // الاستماع للاعبين المتصلين بالروم وتحديث القائمة والتحديات لايف
-    listenToPlayers();
-    listenToChallengeAnswers();
 }
 
-// دالة لتثبيت الكلمة السرية
 function saveSecretWord() {
     const word = document.getElementById('secret-word').value.trim();
     if (!word) {
@@ -66,7 +60,6 @@ function saveSecretWord() {
     alert("تم تثبيت الكلمة السرية وبدأ الجيم لايف عند الشباب!");
 }
 
-// الاستماع للاعبين المتصلين لعرضهم في لوحة المدير
 function listenToPlayers() {
     database.ref('rooms/' + roomCode + '/players').on('value', (snapshot) => {
         const playersListDiv = document.getElementById('host-players-list');
@@ -80,8 +73,6 @@ function listenToPlayers() {
 
         for (let playerId in players) {
             const player = players[playerId];
-            
-            // إنشاء كرت لكل لاعب ومعه خانة لإرسال تلميح مخصص له
             const playerRow = document.createElement('div');
             playerRow.className = "card";
             playerRow.style.padding = "10px";
@@ -93,7 +84,7 @@ function listenToPlayers() {
                 </div>
                 <div class="form-group inline-group" style="margin-bottom: 0;">
                     <input type="text" id="hint-input-${playerId}" placeholder="اكتب تلميحاً سرياً له...">
-                    <button onclick="sendPrivateHint('${playerId}')" class="btn btn-host" style="width:auto; padding: 5px 10px; font-size:0.9rem;">إرسال تلميح</button>
+                    <button type="button" onclick="sendPrivateHint('${playerId}')" class="btn btn-host" style="width:auto; padding: 5px 10px; font-size:0.9rem;">إرسال تلميح</button>
                 </div>
             `;
             playersListDiv.appendChild(playerRow);
@@ -101,25 +92,20 @@ function listenToPlayers() {
     });
 }
 
-// دالة يضغطها المدير لإرسال تلميح خاص للاعب معين في صندوقه
 function sendPrivateHint(playerId) {
     const hintInput = document.getElementById(`hint-input-${playerId}`);
     const hintText = hintInput.value.trim();
     
     if (!hintText) {
-        alert("اكتب تلميحاً أولاً لتوريثه للاعب!");
+        alert("اكتب تلميحاً أولاً!");
         return;
     }
 
-    // دفع التلميح في صندوق اللاعب السري بالخادم
-    const hintRef = database.ref('rooms/' + roomCode + '/players/' + playerId + '/hints').push();
-    hintRef.set(hintText);
-    
-    hintInput.value = ""; // تنظيف الخانة
-    alert("تم إرسال التلميح سرياً لجوال اللاعب!");
+    database.ref('rooms/' + roomCode + '/players/' + playerId + '/hints').push(hintText);
+    hintInput.value = "";
+    alert("تم إرسال التلميح سرياً بجوال اللاعب!");
 }
 
-// الاستماع لإجابات التحديات اللي يرسلها الشباب سرياً للمدير
 function listenToChallengeAnswers() {
     database.ref('rooms/' + roomCode + '/players').on('value', (snapshot) => {
         const box = document.getElementById('host-challenges-box');
@@ -144,19 +130,15 @@ function listenToChallengeAnswers() {
     });
 }
 
-// دالة الانتقال للجولة التالية وتصفير إجابات التحديات القديمة
 function nextRound() {
     if (currentRound >= maxRounds) {
-        alert("وصلت للحد الأقصى من الجولات! أعلن نهاية القيم أو انتظر تخمين الكلمة.");
+        alert("وصلت للحد الأقصى من الجولات!");
         return;
     }
     currentRound++;
     document.getElementById('host-current-round').innerText = currentRound;
-
-    // تحديث الجولة في السيرفر وتصفير إجابات التحدي لاستقبال تحدي جديد
     database.ref('rooms/' + roomCode).update({ currentRound: currentRound });
     
-    // تصفير خانات التحدي عند كل اللاعبين في السيرفر
     database.ref('rooms/' + roomCode + '/players').once('value', (snapshot) => {
         const players = snapshot.val();
         for (let playerId in players) {
