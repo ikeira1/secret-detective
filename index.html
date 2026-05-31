@@ -5,10 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🕵️‍♂️ شفرة المحقق السري</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* إخفاء أزرار التحكم بالتلميحات يدوياً تلقائياً */
+        .hint-controls {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            display: inline-flex;
+            gap: 4px;
+        }
+        /* إظهار الأزرار فقط عند تمرير الماوس فوق كرت اللاعب */
+        .player-card-hover:hover .hint-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- ==================== 1. شاشة الدخول وإنشاء الغرفة ==================== -->
     <div id="auth-screen" class="container">
         <header>
             <h1>🕵️‍♂️ شفرة المحقق السري</h1>
@@ -16,7 +30,6 @@
         </header>
 
         <div class="card-grid">
-            <!-- كرت المدير -->
             <div class="card host-card">
                 <h2>👑 إنشاء غرفة جديدة (المدير)</h2>
                 <div class="form-group">
@@ -30,7 +43,6 @@
                 <button type="button" onclick="initHost()" class="btn btn-host">إنشاء الروم وبدء الإدارة</button>
             </div>
 
-            <!-- كرت اللاعب -->
             <div class="card player-card">
                 <h2>🎮 الانضمام كلاعب</h2>
                 <div class="form-group">
@@ -46,7 +58,6 @@
         </div>
     </div>
 
-    <!-- ==================== 2. لوحة تحكم المدير (Host Dashboard) ==================== -->
     <div id="host-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
@@ -56,9 +67,14 @@
                         <input type="text" id="secret-word" placeholder="اكتب الكلمة أو الجملة السرية هنا">
                         <button type="button" onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
                     </div>
-                    <div class="status-bar">
-                        <span>الجولة الحالية: <strong id="host-current-round">1</strong> / <span id="host-max-rounds">-</span></span>
-                        <button type="button" onclick="nextRound()" class="btn btn-player" style="width: auto; padding: 5px 15px;">الانتقال للجولة التالية ➡️</button>
+                    <div class="status-bar" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+                        <div>
+                            <span>الجولة الحالية: <strong id="host-current-round">1</strong> / <span id="host-max-rounds">-</span></span>
+                        </div>
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <button type="button" onclick="nextRound()" class="btn btn-player" style="flex: 1; padding: 8px 15px;">الانتقال للجولة التالية ➡️</button>
+                            <button type="button" onclick="resetFullGame()" class="btn" style="flex: 1; background-color: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 8px 15px;">إعادة تشغيل الجيم بالكامل 🔄</button>
+                        </div>
                     </div>
                 </div>
                 <div class="card chat-card">
@@ -75,7 +91,6 @@
         </div>
     </div>
 
-    <!-- ==================== 3. واجهة اللاعب (Player Dashboard) ==================== -->
     <div id="player-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
@@ -119,7 +134,6 @@
         </div>
     </div>
 
-    <!-- ==================== 4. شاشة التصويت النهائي ==================== -->
     <div id="vote-screen" class="container d-none">
         <div class="card" style="max-width: 600px; margin: 0 auto;">
             <h2>🚨 تم اكتشاف الكلمة السرية!</h2>
@@ -129,10 +143,9 @@
         </div>
     </div>
 
-    <!-- ==================== 5. الهامش السفلي الثابت بحساباتك ==================== -->
     <footer class="game-footer">
         <hr>
-        <p>استمتعت باللعبة؟ ادعم المستضيف من هنا 🤍</p>
+        <p>استمتعت باللعبة? ادعم المستضيف من هنا 🤍</p>
         <div class="social-links">
             <a href="https://creators.sa/keira" target="_blank" class="donation-btn">☕ دعم مادي (دكان تيب)</a>
             <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
@@ -141,7 +154,6 @@
         </div>
     </footer>
 
-    <!-- ==================== 6. استدعاء المكاتب الحديثة والمتوافقة 100% ==================== -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     

@@ -1,5 +1,5 @@
 // ==========================================
-// ملف التحكم الخاص باللاعبين الحديث (Player)
+// ملف التحكم الخاص باللاعبين المطور (Player)
 // ==========================================
 
 let pDatabase;
@@ -17,7 +17,6 @@ function initPlayer() {
         return;
     }
 
-    // الربط الصحيح المتوافق مع مكاتب Compat
     try {
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -40,7 +39,8 @@ function initPlayer() {
             name: playerName,
             attempts: pAttempts,
             challengeAnswer: "",
-            votedFor: ""
+            votedFor: "",
+            manualHintCount: 0
         }).then(() => {
             document.getElementById('auth-screen').classList.add('d-none');
             document.getElementById('player-screen').classList.remove('d-none');
@@ -56,8 +56,40 @@ function startPlayerListeners() {
 
         document.getElementById('player-current-round').innerText = data.currentRound;
 
+        if (data.gameStatus === "host_transferred" && data.newHostId === playerId) {
+            pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).remove().then(() => {
+                alert("👑 مبروك! تم تعيينك كمدير للروم الآن!");
+                
+                document.getElementById('player-screen').classList.add('d-none');
+                document.getElementById('vote-screen').classList.add('d-none');
+                document.getElementById('auth-screen').classList.add('d-none');
+                document.getElementById('host-screen').classList.remove('d-none');
+                
+                roomCode = pRoomCode;
+                database = pDatabase;
+                document.getElementById('display-room-code').innerText = `رمز الروم: ${roomCode}`;
+                document.getElementById('host-max-rounds').innerText = data.maxRounds;
+                document.getElementById('host-name').value = playerName;
+                
+                listenToPlayers();
+                listenToChallengeAnswers();
+                listenForHostTransfer();
+                
+                pDatabase.ref('rooms/' + pRoomCode).update({ gameStatus: "lobby", newHostId: "" });
+            });
+            return;
+        }
+
         if (data.gameStatus === "voting") {
             openVoteScreen();
+        }
+        
+        if (data.gameStatus === "lobby") {
+            document.getElementById('vote-screen').classList.add('d-none');
+            document.getElementById('player-screen').classList.remove('d-none');
+            pAttempts = 3;
+            document.getElementById('remaining-attempts').innerText = pAttempts;
+            document.getElementById('guess-input').disabled = false;
         }
     });
 
@@ -138,6 +170,7 @@ function submitGuess() {
     });
 }
 
+// دالة إرسال جواب التحدي المعدلة
 function submitChallengeAnswer() {
     const answerInput = document.getElementById('challenge-answer-input');
     const answerText = answerInput.value.trim();
