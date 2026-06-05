@@ -6,7 +6,7 @@
     <title>🕵️‍♂️ شفرة المحقق السري</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* شريط الحسابات الثابت (Sticky Navbar) أعلى الصفحة */
+        /* شريط الحسابات الثابت (Sticky Navbar) المطور */
         .sticky-navbar {
             position: fixed;
             top: 0;
@@ -14,8 +14,8 @@
             width: 100%;
             background: linear-gradient(90deg, #1e1b4b 0%, #0f172a 100%);
             border-bottom: 2px solid #ff007c;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             padding: 10px 20px;
             z-index: 9999;
@@ -25,53 +25,91 @@
             color: #00ffcc;
             font-weight: bold;
             font-size: 1.1rem;
+            justify-self: start;
         }
-        .sticky-navbar .nav-links {
+        /* جعل الروابط في المنتصف تماماً بشكل ملفت */
+        .sticky-navbar .nav-links-center {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
+            justify-self: center;
         }
-        .sticky-navbar .nav-links a {
+        .sticky-navbar .nav-links-center a {
             color: #e2e8f0;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: bold;
-            transition: color 0.2s;
+            transition: all 0.2s ease;
+            padding: 5px 10px;
+            border-radius: 4px;
         }
-        .sticky-navbar .nav-links a:hover {
+        .sticky-navbar .nav-links-center a:hover {
             color: #ff007c;
+            background: rgba(255, 0, 124, 0.1);
         }
-        .sticky-navbar .nav-donation {
+        .sticky-navbar .nav-links-center .nav-donation {
             background: #ff007c;
             color: white !important;
-            padding: 4px 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(255, 0, 124, 0.4);
+            box-shadow: 0 0 15px rgba(255, 0, 124, 0.6);
+            animation: pulse 2s infinite;
+        }
+        .sticky-navbar .nav-left-actions {
+            justify-self: end;
         }
         .sticky-navbar .nav-leave-btn {
             background: #ef4444;
             color: white;
             border: none;
-            padding: 4px 10px;
+            padding: 6px 14px;
             border-radius: 5px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
+            transition: background 0.2s;
         }
-        /* دفع محتوى الصفحة لأسفل حتى لا يتغطى بالشريط الثابت */
+        .sticky-navbar .nav-leave-btn:hover {
+            background: #b91c1c;
+        }
+        /* دفع محتوى الصفحة لأسفل */
         body {
-            padding-top: 70px !important;
+            padding-top: 80px !important;
         }
-        .hint-controls {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
+        .hint-controls, .attempt-controls {
             display: inline-flex;
             gap: 4px;
+            margin-right: 8px;
         }
         .player-card-hover:hover .hint-controls {
             opacity: 1;
             pointer-events: auto;
+        }
+        /* كارد إظهار كود الروم للاعبين */
+        .room-code-box {
+            background: #1e293b;
+            border: 1px solid #00ffcc;
+            padding: 8px 15px;
+            border-radius: 6px;
+            color: #00ffcc;
+            font-weight: bold;
+            font-size: 1rem;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        /* فواصل جولات الإجابات */
+        .round-divider {
+            background: #334155;
+            color: #f8fafc;
+            padding: 6px 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            margin: 15px 0 10px 0;
+            font-size: 0.9rem;
+            border-right: 4px solid #38bdf8;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -79,12 +117,16 @@
 
     <div class="sticky-navbar">
         <div class="nav-title">🕵️‍♂️ شفرة المحقق السري</div>
-        <div class="nav-links">
+        
+        <div class="nav-links-center">
             <a href="https://creators.sa/keira" target="_blank" class="nav-donation">☕ دعم مادي (دكان تيب)</a>
             <a href="https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc" target="_blank">🎵 تيك توك</a>
             <a href="https://www.youtube.com/@ikeira1" target="_blank">📺 يوتيوب</a>
             <a href="https://www.twitch.tv/ikeira1" target="_blank">🎮 تويتش</a>
-            <button class="nav-leave-btn" onclick="leaveRoomButton()">روم جديد 🚪</button>
+        </div>
+
+        <div class="nav-left-actions">
+            <button class="nav-leave-btn" onclick="leaveRoomButton()">بدء روم جديد 🚪</button>
         </div>
     </div>
 
@@ -128,10 +170,18 @@
             <div class="main-panel">
                 <div class="card">
                     <h2>👑 لوحة تحكم المدير <span id="display-room-code" class="badge">رمز الروم: ----</span></h2>
+                    
                     <div class="form-group inline-group">
                         <input type="text" id="secret-word" placeholder="اكتب الكلمة أو الجملة السرية هنا">
                         <button type="button" id="save-word-btn" onclick="saveSecretWord()" class="btn btn-host" style="width: auto;">تثبيت الكلمة</button>
                     </div>
+
+                    <div id="host-winner-alert-box" class="card d-none" style="background: rgba(0, 255, 204, 0.1); border: 2px solid #00ffcc; margin: 15px 0;">
+                        <h3 style="color: #00ffcc; margin-bottom: 5px; text-align: center;">🚨 تم كشف الكلمة السرية!</h3>
+                        <p style="text-align: center; margin-bottom: 10px;">اللاعب <strong id="host-winner-name" style="color: #ff007c; font-size: 1.2rem;">----</strong> هو اللي جابها صح!</p>
+                        <button type="button" onclick="activateVotingStage()" class="btn btn-host" style="background: #ff007c; box-shadow: 0 0 10px #ff007c;">إطلاق مرحلة التصويت للاعبين الحين 🚀</button>
+                    </div>
+
                     <div class="status-bar" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
                         <div>
                             <span>الجولة الحالية: <strong id="host-current-round">1</strong> / <span id="host-max-rounds">-</span></span>
@@ -153,13 +203,13 @@
                 </div>
 
                 <div class="card chat-card" style="margin-top: 20px;">
-                    <h3>📥 إجابات التحديات الواردة من اللاعبين (سري لك فقط)</h3>
+                    <h3>📥 إجابات التحديات الواردة وترتيب الأسرع (سري لك فقط)</h3>
                     <div id="host-challenges-box" class="messages-container"></div>
                 </div>
             </div>
             <div class="side-panel">
                 <div class="card">
-                    <h3>👥 اللاعبين المتصلين</h3>
+                    <h3>👥 اللاعبين المتصلين الحين</h3>
                     <div id="host-players-list"></div>
                 </div>
             </div>
@@ -170,8 +220,10 @@
         <div class="game-layout">
             <div class="main-panel">
                 <div class="card">
+                    <div class="room-code-box" id="player-display-room-code">رمز الروم الحالي: ----</div>
+
                     <h2>🎮 خانة التخمين السري</h2>
-                    <p>حاول حزر الكلمة السرية (لك 3 محاولات فقط طوال الجيم)</p>
+                    <p>حاول حزر الكلمة السرية (يتحكم المدير بعدد محاولاتك)</p>
                     <div class="form-group inline-group">
                         <input type="text" id="guess-input" placeholder="اكتب تخمينك هنا...">
                         <button type="button" onclick="submitGuess()" class="btn btn-player" style="width: auto;">تخمين</button>
@@ -191,6 +243,12 @@
                 </div>
             </div>
             <div class="side-panel">
+                <div class="card">
+                    <h3>👥 أسامي المشاركين بالروم</h3>
+                    <div id="player-all-members-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <span class="empty-state">جاري تحميل قائمة الأسامي...</span>
+                    </div>
+                </div>
                 <div class="card special-border">
                     <h3>📜 صندوق تلميحاتك السرية</h3>
                     <p class="small-text">محد يشوف اللي هنا غيرك!</p>
@@ -210,21 +268,23 @@
     </div>
 
     <div id="vote-screen" class="container d-none">
-        <div class="card" style="max-width: 600px; margin: 0 auto;">
-            <h2>🚨 تم اكتشاف الكلمة السرية!</h2>
-            <p>الآن بدأت مرحلة التصويت لمعرفة الفائز بالمركز الثاني.</p>
-            <h3>من الشخص الذي تعتقد أنه عرف الكلمة الصح؟ 🤔</h3>
-            <div id="vote-players-list" class="vote-grid"></div>
+        <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+            <h2 style="color: #ff007c;">🚨 انطلقت مرحلة التصويت الحين!</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 15px;">فيه كينق قفط الكلمة السرية الصح وحسم الجيم! 🔥</p>
+            <h3 style="margin-bottom: 20px; color: #00ffcc;">من الشخص اللي تشك إنه جاب الكلمة؟ 🤔</h3>
+            
+            <div id="vote-players-list" class="vote-grid" style="display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 0 auto;"></div>
         </div>
     </div>
 
     <footer class="game-footer">
-        <hr>
         <p>شفرة المحقق السري مخصصة لستريم كايرا 🤍</p>
     </footer>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <script src="config.js"></script>
     <script src="host.js"></script>

@@ -7,6 +7,7 @@ let pRoomCode = "";
 let playerId = "";
 let playerName = "";
 let pAttempts = 3;
+let hasFiredConfetti = false; // لمنع تكرار الألعاب النارية في نفس اللحظة
 
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
@@ -34,15 +35,17 @@ document.addEventListener("DOMContentLoaded", () => {
                         listenToChallengeAnswers();
                         listenForHostTransfer();
                         listenToChatForHost();
+                        listenToGameStatusForHost();
                     } else {
                         playerId = localStorage.getItem('sd_playerId');
                         pDatabase = checkDb;
                         pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).once('value', (pSnap) => {
                             if (pSnap.exists()) {
-                                pAttempts = pSnap.val().attempts;
+                                pAttempts = pSnap.val().attempts !== undefined ? pSnap.val().attempts : 3;
                                 document.getElementById('remaining-attempts').innerText = pAttempts;
                                 document.getElementById('auth-screen').classList.add('d-none');
                                 document.getElementById('player-screen').classList.remove('d-none');
+                                document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
                                 startPlayerListeners();
                             } else {
                                 localStorage.clear();
@@ -89,53 +92,87 @@ function initPlayer() {
 
         pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).set({
             name: playerName,
-            attempts: pAttempts,
+            attempts: 3,
             challengeAnswer: "",
             votedFor: "",
             manualHintCount: 0
         }).then(() => {
             document.getElementById('auth-screen').classList.add('d-none');
             document.getElementById('player-screen').classList.remove('d-none');
+            document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
             startPlayerListeners();
         });
     });
 }
 
 function startPlayerListeners() {
+    // 1. مراقبة قائمة كل المشاركين بالروم وطباعتها عند كل اللاعبين مع وسم المدير
     pDatabase.ref('rooms/' + pRoomCode).on('value', (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
+        const membersDiv = document.getElementById('player-all-members-list');
+        if (membersDiv) {
+            membersDiv.innerHTML = "";
+            // إضافة المدير أولاً بالتاج المميز
+            const hostRow = document.createElement('div');
+            hostRow.style.padding = "6px 10px";
+            hostRow.style.background = "rgba(99, 102, 241, 0.2)";
+            hostRow.style.borderRadius = "4px";
+            hostRow.style.borderRight = "3px solid #6366f1";
+            hostRow.innerHTML = `👑 <strong>${data.hostName}</strong> <span style="font-size:0.75rem; color:#a5b4fc;">(المدير)</span>`;
+            membersDiv.appendChild(hostRow);
+
+            // طباعة باقي اللاعبين
+            if (data.players) {
+                for (let pId in data.players) {
+                    const pItem = data.players[pId];
+                    const pRow = document.createElement('div');
+                    pRow.style.padding = "6px 10px";
+                    pRow.style.background = "#1e293b";
+                    pRow.style.borderRadius = "4px";
+                    pRow.innerHTML = `🎮 ${pItem.name}`;
+                    membersDiv.appendChild(pRow);
+                }
+            }
+        }
+
         document.getElementById('player-current-round').innerText = data.currentRound;
 
-        // دالة تحويل اللاعب الفورية لمدير آمنة ونظيفة 100% بدون أي تعليق
+        // تحديث لايف للمحاولات المتبقية إذا عدلها المدير يدوياً من عنده
+        if (data.players && data.players[playerId]) {
+            pAttempts = data.players[playerId].attempts !== undefined ? data.players[playerId].attempts : 3;
+            document.getElementById('remaining-attempts').innerText = pAttempts;
+            if (pAttempts > 0 && data.gameStatus === "playing") {
+                document.getElementById('guess-input').disabled = false;
+            }
+        }
+
+        // تحويل آمن للمدير الجديد بدون تعليق
         if (data.gameStatus === "host_transferred" && data.newHostId === playerId) {
             pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).remove().then(() => {
                 alert("👑 مبروك! أصبحت مدير الروم الحالي الآن!");
-                
                 localStorage.removeItem('sd_role');
                 localStorage.removeItem('sd_playerId');
                 localStorage.setItem('sd_role', 'host');
-                
                 window.location.reload(); 
             });
             return;
         }
 
+        // تفعيل شاشة التصويت الفردية العادلة وإطلاق الالعاب النارية
         if (data.gameStatus === "voting") {
-            openVoteScreen();
+            if (!hasFiredConfetti) {
+                triggerFireworksEffect();
+                hasFiredConfetti = true;
+            }
+            openVoteScreen(data);
         }
         
-        if (data.gameStatus === "lobby") {
+        if (data.gameStatus === "lobby" || data.gameStatus === "playing") {
             document.getElementById('vote-screen').classList.add('d-none');
             document.getElementById('player-screen').classList.remove('d-none');
-            pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).once('value', (pSnap) => {
-               if(pSnap.exists()) {
-                   pAttempts = pSnap.val().attempts;
-                   document.getElementById('remaining-attempts').innerText = pAttempts;
-                   if(pAttempts > 0) document.getElementById('guess-input').disabled = false;
-               }
-            });
+            hasFiredConfetti = false; // تصفير العداد للراند القادم
         }
     });
 
@@ -181,17 +218,19 @@ function submitGuess() {
     if (!playerGuess) return;
 
     if (pAttempts <= 0) {
-        alert("انتهت محاولاتك!");
+        alert("انتهت محاولاتك الحالية!");
         return;
     }
 
     pDatabase.ref('rooms/' + pRoomCode).once('value', (snapshot) => {
         const data = snapshot.val();
         if (playerGuess === data.secretWord) {
+            // بدلاً من فتح التصويت فوراً، نغير الحالة للانتظار ونعلم المدير بالاسم سراً
             pDatabase.ref('rooms/' + pRoomCode).update({
-                gameStatus: "voting",
+                gameStatus: "word_guessed_waiting",
                 winnerWordPlayer: playerName
             });
+            alert("🎯 كفوووو جبت الكلمة صح! الحين انتظر المدير يطلق مرحلة التصويت لاحقاً طقطق عليهم بالشات 😉");
         } else {
             pAttempts--;
             document.getElementById('remaining-attempts').innerText = pAttempts;
@@ -201,11 +240,66 @@ function submitGuess() {
                 alert("انتهت محاولاتك الـ 3!");
                 guessInput.disabled = true;
             } else {
-                alert(`خطأ! متبقي: ${pAttempts}`);
+                alert(`خطأ! متبقي لك: ${pAttempts} محاولات`);
             }
         }
         guessInput.value = "";
     });
+}
+
+function triggerFireworksEffect() {
+    var duration = 4 * 1000;
+    var end = Date.now() + duration;
+
+    (function frame() {
+      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
+      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
+      if (Date.now() < end) { requestAnimationFrame(frame); }
+    }());
+}
+
+// شاشة التصويت العادلة الفورية مع نافذة التأكيد (موافق أو إلغاء)
+function openVoteScreen(roomData) {
+    document.getElementById('player-screen').classList.add('d-none');
+    document.getElementById('vote-screen').classList.remove('d-none');
+
+    const voteGrid = document.getElementById('vote-players-list');
+    voteGrid.innerHTML = "";
+    const players = roomData.players || {};
+
+    let hasOptions = false;
+
+    for (let pId in players) {
+        // فلترة: لا يظهر اسم المدير، ولا يظهر اسم اللاعب نفسه اللي جالس يصوت
+        if (pId === playerId) continue; 
+        
+        hasOptions = true;
+        const btn = document.createElement('button');
+        btn.className = "btn btn-player";
+        btn.style.margin = "5px 0";
+        btn.style.width = "100%";
+        btn.style.padding = "12px";
+        btn.style.fontSize = "1.05rem";
+        btn.innerText = players[pId].name;
+        
+        btn.onclick = function() {
+            // إضافة زر التأكيد لغلق باب الأعذار تماماً
+            const confirmChoice = confirm(`هل أنت متأكد وتبغى تصوت وتخمن إن [ ${players[pId].name} ] هو اللي جاب الكلمة؟`);
+            if (!confirmChoice) return; // إذا تراجع اللاعب يمديه يختار اسم ثاني
+
+            // إذا وافق، نرفع التصويت ونقفل الشاشة فوراً ونرجعه للوبي
+            pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).update({ votedFor: players[pId].name }).then(() => {
+                alert("🔒 تم تسجيل تصويتك بنجاح وسرياً! تم إرجاعك للروم العام.");
+                document.getElementById('vote-screen').classList.add('d-none');
+                document.getElementById('player-screen').classList.remove('d-none');
+            });
+        };
+        voteGrid.appendChild(btn);
+    }
+
+    if (!hasOptions) {
+        voteGrid.innerHTML = "<h3>لا يوجد لاعبين آخرين للتصويت لهم بالروم! 🔍</h3>";
+    }
 }
 
 function submitChallengeAnswer() {
@@ -213,9 +307,18 @@ function submitChallengeAnswer() {
     const answerText = answerInput.value.trim();
     if (!answerText) return;
 
-    pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).update({ challengeAnswer: answerText });
-    answerInput.value = "";
-    alert("تم إرسال جوابك سرياً للمدير!");
+    pDatabase.ref('rooms/' + pRoomCode).once('value', (rSnap) => {
+        const rData = rSnap.val() || {};
+        const currentR = rData.currentRound || 1;
+
+        pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).update({ 
+            challengeAnswer: answerText,
+            challengeRound: currentR,
+            challengeTimestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        answerInput.value = "";
+        alert("تم إرسال جوابك وتثبيت ترتيبك سرياً للمدير!");
+    });
 }
 
 function sendChatMessage() {
@@ -228,30 +331,6 @@ function sendChatMessage() {
         text: msgText
     });
     chatInput.value = "";
-}
-
-function openVoteScreen() {
-    document.getElementById('player-screen').classList.add('d-none');
-    document.getElementById('host-screen').classList.add('d-none');
-    document.getElementById('vote-screen').classList.remove('d-none');
-
-    pDatabase.ref('rooms/' + pRoomCode + '/players').once('value', (snapshot) => {
-        const voteGrid = document.getElementById('vote-players-list');
-        voteGrid.innerHTML = "";
-        const players = snapshot.val();
-
-        for (let pId in players) {
-            if (pId === playerId) continue;
-            const btn = document.createElement('button');
-            btn.className = "vote-btn";
-            btn.innerText = players[pId].name;
-            btn.onclick = function() {
-                pDatabase.ref('rooms/' + pRoomCode + '/players/' + playerId).update({ votedFor: players[pId].name });
-                voteGrid.innerHTML = "<h3>تم تسجيل تصويتك بنجاح سرياً! 🔒</h3>";
-            };
-            voteGrid.appendChild(btn);
-        }
-    });
 }
 
 function leaveRoomButton() {

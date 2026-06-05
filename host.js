@@ -49,6 +49,7 @@ function initHost() {
         listenToChallengeAnswers();
         listenForHostTransfer(); 
         listenToChatForHost();
+        listenToGameStatusForHost(); // مراقبة حالة الجيم لرصد من يكتشف الكلمة
     }).catch((error) => {
         alert("خطأ في الاتصال بقاعدة البيانات: " + error.message);
     });
@@ -64,13 +65,11 @@ function saveSecretWord() {
         return;
     }
 
-    // قفل الحقل والزر عند المدير وتثبيت الكلمة للرؤية فقط
     wordInput.disabled = true;
     wordBtn.disabled = true;
     wordBtn.innerText = "🔒 تم التثبيت";
     wordInput.style.backgroundColor = "#1e293b";
 
-    // تحديث قاعدة البيانات وإرسال إشعار للنظام لشات اللاعبين لتبدأ الجولة
     database.ref('rooms/' + roomCode).update({
         secretWord: word,
         gameStatus: "playing"
@@ -79,6 +78,34 @@ function saveSecretWord() {
     database.ref('rooms/' + roomCode + '/chat').push({
         sender: "🚨 النظام",
         text: "المدير حدد الكلمة السرية الحين! بدأت الجولة رسميًا.. ورونا شطارتكم بالتخمين! 🤔🔥"
+    });
+}
+
+// دالة مراقبة حالة الروم والكلمة السرية عند المدير لكشف الفائز له أولاً ومنع قفل الصفحة التلقائي
+function listenToGameStatusForHost() {
+    database.ref('rooms/' + roomCode).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // إذا تم اكتشاف الكلمة ولكننا لم نطلق مرحلة التصويت بعد
+        if (data.gameStatus === "word_guessed_waiting" && data.winnerWordPlayer) {
+            document.getElementById('host-winner-name').innerText = data.winnerWordPlayer;
+            document.getElementById('host-winner-alert-box').classList.remove('d-none');
+        } else {
+            document.getElementById('host-winner-alert-box').classList.add('d-none');
+        }
+    });
+}
+
+// الزر المطور لتفعيل مرحلة التصويت للاعبين يدويًا بعد ما يخلص المدير طقطقة وسوالف
+function activateVotingStage() {
+    database.ref('rooms/' + roomCode).update({
+        gameStatus: "voting"
+    });
+    // إرسال تنبيه في الشات
+    database.ref('rooms/' + roomCode + '/chat').push({
+        sender: "🚨 النظام",
+        text: "انطلقت مرحلة التصويت الحين لايف بشاشاتكم! خمنوا من البطل اللي قفط الكلمة؟ 👀💥"
     });
 }
 
@@ -96,31 +123,40 @@ function listenToPlayers() {
         for (let playerId in players) {
             const player = players[playerId];
             const manualHintCount = player.manualHintCount || 0;
+            const currentAttempts = player.attempts !== undefined ? player.attempts : 3;
 
             const playerRow = document.createElement('div');
             playerRow.className = "card player-card-hover"; 
-            playerRow.style.padding = "10px";
+            playerRow.style.padding = "12px";
             playerRow.style.marginBottom = "10px";
             playerRow.style.position = "relative";
             
             playerRow.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
                         <strong>🎮 ${player.name}</strong>
-                        <span style="color: #00ffcc; font-weight: bold; font-size: 0.95rem;">[💡 ${manualHintCount}]</span>
-                        <div class="hint-controls">
-                            <button type="button" onclick="changeHintCount('${playerId}', 1)" style="background: #10b981; color: white; border: none; border-radius: 4px; padding: 0px 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">+</button>
-                            <button type="button" onclick="changeHintCount('${playerId}', -1)" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 0px 7px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">-</button>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                            <span style="font-size: 0.85rem; color: #00ffcc;">💡 تلميحاته: <strong>${manualHintCount}</strong></span>
+                            <div class="hint-controls">
+                                <button type="button" onclick="changeHintCount('${playerId}', 1)" style="background: #10b981; color: white; border: none; border-radius: 4px; padding: 0px 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">+</button>
+                                <button type="button" onclick="changeHintCount('${playerId}', -1)" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 0px 7px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">-</button>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <span class="badge" style="border-color: #ff007c; color: #ff007c; margin-left: 5px;">محاولاته: ${player.attempts}</span>
-                        <button type="button" onclick="transferHost('${playerId}', '${player.name}')" class="btn" style="width:auto; padding: 2px 6px; font-size:0.75rem; background-color:#6366f1; color:white; border:none; border-radius:4px; cursor:pointer;">تعيين كمدير 👑</button>
+                    <div style="text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-bottom: 5px;">
+                            <span class="badge" style="border-color: #ff007c; color: #ff007c; font-size: 0.8rem; padding: 2px 6px;">محاولاته: ${currentAttempts}</span>
+                            <div class="attempt-controls">
+                                <button type="button" onclick="changePlayerAttempts('${playerId}', 1)" style="background: #6366f1; color: white; border: none; border-radius: 4px; padding: 0px 5px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">+</button>
+                                <button type="button" onclick="changePlayerAttempts('${playerId}', -1)" style="background: #f59e0b; color: white; border: none; border-radius: 4px; padding: 0px 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">-</button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="transferHost('${playerId}', '${player.name}')" class="btn" style="width:auto; padding: 2px 8px; font-size:0.75rem; background-color:#4f46e5; color:white; border:none; border-radius:4px; cursor:pointer; font-weight: bold;">تعيين كمدير 👑</button>
                     </div>
                 </div>
                 <div class="form-group inline-group" style="margin-bottom: 0;">
                     <input type="text" id="hint-input-${playerId}" placeholder="اكتب تلميحاً سرياً له...">
-                    <button type="button" onclick="sendPrivateHint('${playerId}')" class="btn btn-host" style="width:auto; padding: 5px 10px; font-size:0.9rem;">إرسال تلميح</button>
+                    <button type="button" onclick="sendPrivateHint('${playerId}')" class="btn btn-host" style="width:auto; padding: 5px 10px; font-size:0.9rem;">إرسال</button>
                 </div>
             `;
             playersListDiv.appendChild(playerRow);
@@ -140,6 +176,19 @@ function changeHintCount(playerId, value) {
     });
 }
 
+// دالة التحكم اليدوي بعدد المحاولات للالاعبين زيادة أو نقصان
+function changePlayerAttempts(playerId, value) {
+    const playerRef = database.ref('rooms/' + roomCode + '/players/' + playerId);
+    playerRef.once('value', (snapshot) => {
+        const player = snapshot.val();
+        if (!player) return;
+        let currentAttempts = player.attempts !== undefined ? player.attempts : 3;
+        let newAttempts = currentAttempts + value;
+        if (newAttempts < 0) newAttempts = 0;
+        playerRef.update({ attempts: newAttempts });
+    });
+}
+
 function sendPrivateHint(playerId) {
     const hintInput = document.getElementById(`hint-input-${playerId}`);
     const hintText = hintInput.value.trim();
@@ -151,24 +200,64 @@ function sendPrivateHint(playerId) {
     hintInput.value = "";
 }
 
+// ترتيب صندوق الإجابات بالفواصل والترتيب العددي التصاعدي للأسرع بكل جولة
 function listenToChallengeAnswers() {
-    database.ref('rooms/' + roomCode + '/players').on('value', (snapshot) => {
+    database.ref('rooms/' + roomCode).on('value', (roomSnapshot) => {
+        const roomData = roomSnapshot.val();
         const box = document.getElementById('host-challenges-box');
         box.innerHTML = "";
-        const players = snapshot.val();
-        let hasAnswers = false;
+        
+        if (!roomData || !roomData.players) {
+            box.innerHTML = '<span class="empty-state">لم يرسل أي لاعب حل التحدي بعد...</span>';
+            return;
+        }
+
+        const players = roomData.players;
+        
+        let roundsAnswers = {};
+        for (let i = 1; i <= (roomData.currentRound || 1); i++) {
+            roundsAnswers[i] = [];
+        }
 
         for (let playerId in players) {
             const player = players[playerId];
             if (player.challengeAnswer) {
-                hasAnswers = true;
-                const msg = document.createElement('div');
-                msg.className = "msg msg-host";
-                msg.innerHTML = `<strong>${player.name}:</strong> ${player.challengeAnswer}`;
-                box.appendChild(msg);
+                const rNum = player.challengeRound || roomData.currentRound || 1;
+                if (!roundsAnswers[rNum]) roundsAnswers[rNum] = [];
+                
+                roundsAnswers[rNum].push({
+                    name: player.name,
+                    answer: player.challengeAnswer,
+                    timestamp: player.challengeTimestamp || 0
+                });
             }
         }
-        if (!hasAnswers) {
+
+        let hasAnyData = false;
+
+        for (let r = 1; r <= (roomData.currentRound || 1); r++) {
+            const list = roundsAnswers[r] || [];
+            if (list.length > 0) {
+                hasAnyData = true;
+                
+                list.sort((a, b) => a.timestamp - b.timestamp);
+
+                const divider = document.createElement('div');
+                divider.className = "round-divider";
+                divider.innerText = `⏳ إجابات الجولة رقم [ ${r} ]`;
+                box.appendChild(divider);
+
+                list.forEach((item, index) => {
+                    const msg = document.createElement('div');
+                    msg.className = "msg msg-host";
+                    msg.style.borderLeft = "3px solid #38bdf8";
+                    msg.innerHTML = `<strong>[ ${index + 1} ] ${item.name}:</strong> ${item.answer}`;
+                    box.appendChild(msg);
+                });
+            }
+        }
+
+        if (!hasAnyData) {
             box.innerHTML = '<span class="empty-state">لم يرسل أي لاعب حل التحدي بعد...</span>';
         }
     });
@@ -213,31 +302,46 @@ function nextRound() {
     }
     currentRound++;
     document.getElementById('host-current-round').innerText = currentRound;
-    database.ref('rooms/' + roomCode).update({ currentRound: currentRound });
+    
+    const wordInput = document.getElementById('secret-word');
+    const wordBtn = document.getElementById('save-word-btn');
+    wordInput.value = "";
+    wordInput.disabled = false;
+    wordInput.style.backgroundColor = "";
+    wordBtn.disabled = false;
+    wordBtn.innerText = "تثبيت الكلمة";
+
+    database.ref('rooms/' + roomCode).update({ 
+        currentRound: currentRound,
+        secretWord: "",
+        gameStatus: "lobby",
+        winnerWordPlayer: ""
+    });
     
     database.ref('rooms/' + roomCode + '/players').once('value', (snapshot) => {
         const players = snapshot.val();
         for (let playerId in players) {
-            database.ref('rooms/' + roomCode + '/players/' + playerId).update({ challengeAnswer: "" });
+            database.ref('rooms/' + roomCode + '/players/' + playerId).update({ 
+                challengeAnswer: "",
+                votedFor: "" 
+            });
         }
     });
 }
 
-// دالة نقل الإدارة المطورة تماماً لمنع التعليق أو الطرد المتكرر اللانهائي
+// دالة النقل الاحترافية والمعدلة لمنع قليتش الوميض والتعليق اللانهائي
 function transferHost(targetPlayerId, targetPlayerName) {
     if (!confirm(`هل أنت متأكد من نقل صلاحية المدير إلى ${targetPlayerName}؟ ستتحول أنت تلقائيًا إلى لاعب عادي بنفس اسمك الحقيقي.`)) return;
 
     const currentHostName = localStorage.getItem('sd_playerName') || "مدير سابق";
     const myNewPlayerId = "p_" + Math.random().toString(36).substr(2, 9);
     
-    // 1. مسح وتنظيف السجل المحلي الخاص بكوني هوست وتجهيزه كلاعب فوراً
     localStorage.removeItem('sd_role');
     localStorage.removeItem('sd_playerId');
     
     localStorage.setItem('sd_role', 'player');
     localStorage.setItem('sd_playerId', myNewPlayerId);
 
-    // 2. رفع حسابي كلاعب عادي في قاعدة البيانات أولاً
     database.ref('rooms/' + roomCode + '/players/' + myNewPlayerId).set({
         name: currentHostName,
         attempts: 3,
@@ -245,7 +349,6 @@ function transferHost(targetPlayerId, targetPlayerName) {
         votedFor: "",
         manualHintCount: 0
     }).then(() => {
-        // 3. تحديث الروم لتمرير الهوست للشخص الآخر وتغيير الحالة لإعادة التحميل الآمن
         database.ref('rooms/' + roomCode).update({
             hostName: targetPlayerName,
             newHostId: targetPlayerId, 
@@ -262,22 +365,18 @@ function listenForHostTransfer() {
     });
 }
 
-// دالة إعادة تشغيل الجيم المعدلة لتظهر الخيارات المطلوبة (تعديل الجولات والمدير)
 function resetFullGame() {
-    // 1. اختيار الجولات الجديد
     let newRounds = prompt("كم تريد أن يكون عدد الجولات للجيم الجديد؟", maxRounds);
-    if (newRounds === null) return; // إلغاء الأمر
+    if (newRounds === null) return; 
     newRounds = parseInt(newRounds) || 5;
 
-    // 2. سؤال الإدارة
-    let stayHost = confirm("هل تريد الاستمرار كونك المدير؟\n(موافق/OK = استمرار، إلغاء/Cancel = ستقوم بنقل المدير لشخص آخر من القائمة)");
+    let stayHost = confirm("هل تريد الاستمرار كونك المدير?\n(موافق/OK = استمرار، إلغاء/Cancel = نقل المدير لشخص آخر من القائمة)");
 
     currentRound = 1;
     maxRounds = newRounds;
     document.getElementById('host-current-round').innerText = 1;
     document.getElementById('host-max-rounds').innerText = newRounds;
 
-    // فتح قفل الخانات لتمكين كتابة كلمة سرية جديدة
     const wordInput = document.getElementById('secret-word');
     const wordBtn = document.getElementById('save-word-btn');
     wordInput.value = "";
@@ -309,13 +408,13 @@ function resetFullGame() {
         
         database.ref('rooms/' + roomCode + '/chat').push({
             sender: "🚨 النظام",
-            text: `تمت إعادة تشغيل الجيم بالكامل لجولات عددها (${maxRounds}) جولات جديدة! بانتظار المدير يثبت الكلمة 👀✨`
+            text: `تمت إعادة تشغيل الجيم بالكامل لعدد (${maxRounds}) جولات جديدة! بانتظار المدير يثبت الكلمة 👀✨`
         });
 
         if (!stayHost) {
-            alert("تم تصفير الروم، الرجاء الآن الضغط على زر 'تعيين كمدير 👑' بجانب اسم اللاعب الذي تريده ليتولى الإدارة!");
+            alert("تم تصفير الروم، اضغط الآن على زر 'تعيين كمدير 👑' بجانب اسم اللاعب اللي تبيه يتولى الروم!");
         } else {
-            alert("تم تصفير الروم وبدء جيم جديد بنجاح وأنت المدير الحين!");
+            alert("تم تصفير الروم وبدء قيم جديد بنجاح وأنت المدير الحين!");
         }
     });
 }
