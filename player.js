@@ -1,5 +1,5 @@
 // ==========================================
-// ملف التحكم الخاص باللاعبين المطور (Player)
+// ملف التحكم الخاص باللاعبين المطور (Player) - نسخة فك التعليق
 // ==========================================
 
 let pDatabase;
@@ -35,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     playerName = localStorage.getItem('sd_playerName');
                     
                     if (savedRole === 'host') {
-                        // إعادة توجيه لتهيئة لوحة التحكم للمدير
                         roomCode = savedRoom;
                         database = checkDb;
                         document.getElementById('auth-screen').classList.add('d-none');
@@ -43,13 +42,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         document.getElementById('display-room-code').innerText = `رمز الروم: ${roomCode}`;
                         document.getElementById('host-max-rounds').innerText = snap.val().maxRounds;
                         document.getElementById('host-name').value = playerName;
-                        listenToPlayers();
-                        listenToChallengeAnswers();
-                        listenToChatForHost();
-                        listenToGameStatusForHost();
-                        setupHostPresence();
+                        if (typeof listenToPlayers === "function") listenToPlayers();
+                        if (typeof listenToChallengeAnswers === "function") listenToChallengeAnswers();
+                        if (typeof listenToChatForHost === "function") listenToChatForHost();
+                        if (typeof listenToGameStatusForHost === "function") listenToGameStatusForHost();
+                        if (typeof setupHostPresence === "function") setupHostPresence();
                     } else {
-                        // تفعيل واجهة اللاعب
                         pDatabase = checkDb;
                         pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).once('value', (pSnap) => {
                             if (pSnap.exists()) {
@@ -60,12 +58,16 @@ document.addEventListener("DOMContentLoaded", () => {
                                 document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
                                 startPlayerListeners();
                             } else {
-                                localStorage.clear();
+                                // إذا الغرفة موجودة واللاعب مو مسجل فيها، نظف الكاش وخليه بصفحة الدخول
+                                localStorage.removeItem('sd_role');
+                                localStorage.removeItem('sd_roomCode');
                             }
                         });
                     }
                 } else {
-                    localStorage.clear();
+                    // إذا الغرفة بكبرها مو موجودة بالسيرفر، صفر الكاش فوراً فكاً للتعليق
+                    localStorage.removeItem('sd_role');
+                    localStorage.removeItem('sd_roomCode');
                 }
             });
         }
@@ -90,16 +92,15 @@ function initPlayer() {
         return;
     }
 
-    // فحص البلاك ليست قبل السماح بالدخول
     pDatabase.ref('rooms/' + pRoomCode).once('value', (snapshot) => {
         if (!snapshot.exists()) {
-            alert("رقم الغرفة غير صحيح!");
+            alert("رقم الغرفة غير صحيح أو تم إغلاقها!");
             return;
         }
 
         const roomData = snapshot.val();
         if (roomData.blacklist && roomData.blacklist[myUID]) {
-            alert("❌ عذراً، أنت مطرود من هذا الروم ومسجل في القائمة السوداء للمدير. لا يمكنك الدخول!");
+            alert("❌ عذراً، أنت مطرود من هذا الروم ومسجل في القائمة السوداء!");
             return;
         }
 
@@ -114,9 +115,7 @@ function initPlayer() {
             votedFor: "",
             manualHintCount: 0
         }).then(() => {
-            // تفعيل إدارة الانفصال والمغادرة الفورية
             pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).onDisconnect().remove();
-
             document.getElementById('auth-screen').classList.add('d-none');
             document.getElementById('player-screen').classList.remove('d-none');
             document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
@@ -126,30 +125,28 @@ function initPlayer() {
 }
 
 function startPlayerListeners() {
+    if (!pDatabase || !pRoomCode) return;
+
     pDatabase.ref('rooms/' + pRoomCode).on('value', (snapshot) => {
         const data = snapshot.val();
         if (!data) {
-            // الروم انحذف أو تصفّر
             handleKickedOrLoggedOut();
             return;
         }
 
-        // فحص لايف: لو تم طردي أثناء اللعب، يتم إخراجي فوراً للبوابة الخارجية
         if (data.blacklist && data.blacklist[myUID]) {
             pDatabase.ref('rooms/' + pRoomCode).off();
-            alert("❌ تم طردك الحين من الغرفة من قِبل المدير!");
+            alert("❌ تم طردك من الغرفة من قِبل المدير!");
             handleKickedOrLoggedOut();
             return;
         }
 
-        // لو طلع اللاعب من اللعبة (حذف خانته)
         if (data.players && !data.players[myUID] && data.hostUID !== myUID && data.gameStatus !== "voting") {
             pDatabase.ref('rooms/' + pRoomCode).off();
             handleKickedOrLoggedOut();
             return;
         }
 
-        // رصد ترقية اللاعب الحالي إلى مدير (التحول الآمن بنظام غياب المدير أو النقل)
         if (data.hostUID === myUID) {
             pDatabase.ref('rooms/' + pRoomCode).off();
             alert("👑 تم تعيينك كمدير جديد للروم الحين!");
@@ -159,7 +156,6 @@ function startPlayerListeners() {
             return;
         }
 
-        // طباعة قائمة أسامي المشاركين للكل بدون تكرار وبكل وضوح
         const membersDiv = document.getElementById('player-all-members-list');
         if (membersDiv) {
             membersDiv.innerHTML = "";
@@ -230,6 +226,7 @@ function startPlayerListeners() {
 
     pDatabase.ref('rooms/' + pRoomCode + '/chat').on('value', (snapshot) => {
         const chatBox = document.getElementById('game-chat-box');
+        if (!chatBox) return;
         chatBox.innerHTML = "";
         const messages = snapshot.val();
         if (!messages) return;
@@ -248,7 +245,7 @@ function startPlayerListeners() {
 function submitGuess() {
     const guessInput = document.getElementById('guess-input');
     const playerGuess = guessInput.value.trim();
-    if (!playerGuess) return;
+    if (!playerGuess || !pDatabase) return;
 
     if (pAttempts <= 0) {
         alert("انتهت محاولاتك الحالية!");
@@ -280,6 +277,7 @@ function submitGuess() {
 }
 
 function triggerFireworksEffect() {
+    if (typeof confetti !== "function") return;
     var duration = 4 * 1000;
     var end = Date.now() + duration;
     (function frame() {
@@ -329,23 +327,20 @@ function openVoteScreen(roomData) {
     }
 }
 
-// تعديل إرسال التحدي ليُخزن تراكمياً في تاريخ مستقل (challengeHistory) للحفاظ على الهيستوري كامل
 function submitChallengeAnswer() {
     const answerInput = document.getElementById('challenge-answer-input');
     const answerText = answerInput.value.trim();
-    if (!answerText) return;
+    if (!answerText || !pDatabase) return;
 
     pDatabase.ref('rooms/' + pRoomCode).once('value', (rSnap) => {
         const rData = rSnap.val() || {};
         const currentR = rData.currentRound || 1;
 
-        // رفع الإجابة للراند الحالي بداخل هيستوري تراكمي ثابت
         pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID + '/challengeHistory/' + currentR).set({
             answer: answerText,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // وبنفس الوقت نحدث الحقل العادي لإعلام المدير
         pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).update({
             challengeAnswer: answerText,
             challengeRound: currentR
@@ -359,7 +354,7 @@ function submitChallengeAnswer() {
 function sendChatMessage() {
     const chatInput = document.getElementById('chat-message-input');
     const msgText = chatInput.value.trim();
-    if (!msgText) return;
+    if (!msgText || !pDatabase) return;
 
     pDatabase.ref('rooms/' + pRoomCode + '/chat').push({
         sender: playerName,
@@ -375,11 +370,14 @@ function handleKickedOrLoggedOut() {
     window.location.reload();
 }
 
+// تعديل زر روم جديد ليعمل فوراً ويقضي على الـ Lock نهائياً
 function leaveRoomButton() {
     if(confirm("هل تريد تسجيل الخروج ومسح بيانات الجلسة الحالية بالكامل؟")) {
-        if (pDatabase && pRoomCode && myUID) {
-            pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).remove();
-        }
+        try {
+            if (pDatabase && pRoomCode && myUID) {
+                pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).remove();
+            }
+        } catch(e) { console.log(e); }
         handleKickedOrLoggedOut();
     }
 }
