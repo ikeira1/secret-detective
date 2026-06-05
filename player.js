@@ -1,13 +1,14 @@
 // ==========================================
-// ملف التحكم الخاص باللاعبين المطور (Player) - نسخة خالية من التعارض
+// ملف التحكم الخاص باللاعبين المطور (Player) - نسخة إرسال دقيقة بالوقت
 // ==========================================
 
 let pDatabase;
 let pRoomCode = "";
-myUID = ""; // ✅ تم حذف let من هنا عشان يتشارك المتغير مع الملف الأساسي بدون كراش
+myUID = ""; 
 let playerName = "";
 let pAttempts = 3;
 let hasFiredConfetti = false;
+let lastKnownStatus = "lobby";
 
 function getOrCreateUID() {
     let uid = localStorage.getItem('sd_my_uid');
@@ -18,7 +19,6 @@ function getOrCreateUID() {
     return uid;
 }
 
-// دالة تفريغ الكاش بالكامل وفك أي تعليق على الأزرار فوراً
 function handleKickedOrLoggedOut() {
     localStorage.removeItem('sd_role');
     localStorage.removeItem('sd_roomCode');
@@ -26,7 +26,6 @@ function handleKickedOrLoggedOut() {
     window.location.reload();
 }
 
-// دالة الخروج وصناعة روم جديد (المستدعاة من أي زر خروج باللعبة)
 function leaveRoomButton() {
     if (confirm("هل تريد الخروج من الروم الحالي والعودة للشاشة الرئيسية لصنع روم جديد؟")) {
         try {
@@ -34,7 +33,6 @@ function leaveRoomButton() {
             const currentUID = localStorage.getItem('sd_my_uid');
             if (savedRoom && currentUID && firebase.apps.length) {
                 const db = firebase.database();
-                // مسح اللاعب من قائمة اللاعبين قبل مغادرته
                 db.ref('rooms/' + savedRoom + '/players/' + currentUID).remove();
             }
         } catch(e) { console.log("خطأ مغادرة طبيعي: ", e); }
@@ -42,15 +40,11 @@ function leaveRoomButton() {
     }
 }
 
-// المنطق الآمن لفحص حالة الجلسات بدون تجميد الأزرار الرئيسية عند التحميل
 document.addEventListener("DOMContentLoaded", () => {
     myUID = getOrCreateUID();
     
-    // التأكد من تهيئة فايربيس أولاً وقبل أي استدعاء خارجي
     if (typeof firebaseConfig !== 'undefined') {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     } else {
         console.error("ملف config.js غير معرف أو مفقود!");
         return;
@@ -67,7 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 playerName = localStorage.getItem('sd_playerName') || "";
                 
                 if (savedRole === 'host') {
-                    // تحويل لربط لوحة تحكم المدير
                     if (typeof database !== 'undefined') database = checkDb;
                     if (typeof roomCode !== 'undefined') roomCode = savedRoom;
                     
@@ -85,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (typeof listenToGameStatusForHost === "function") listenToGameStatusForHost();
                     if (typeof setupHostPresence === "function") setupHostPresence();
                 } else {
-                    // ربط واجهة اللاعب
                     pDatabase = checkDb;
                     pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).once('value', (pSnap) => {
                         if (pSnap.exists()) {
@@ -96,14 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
                             startPlayerListeners();
                         } else {
-                            // اللاعب غير مقيد بالغرفة، نظف الكاش لفك التعليق عن أزرار واجهة الدخول
                             localStorage.removeItem('sd_role');
                             localStorage.removeItem('sd_roomCode');
                         }
                     });
                 }
             } else {
-                // الغرفة حُذفت تماماً، مسح آمن للكاش
                 localStorage.removeItem('sd_role');
                 localStorage.removeItem('sd_roomCode');
             }
@@ -177,20 +167,31 @@ function startPlayerListeners() {
             return;
         }
 
-        if (data.players && !data.players[myUID] && data.hostUID !== myUID && data.gameStatus !== "voting") {
-            pDatabase.ref('rooms/' + pRoomCode).off();
-            handleKickedOrLoggedOut();
-            return;
+        // إطلاق إشعارات بوب اب وتنبيهات حية للاعبين عند بدء وقفل الكلمة
+        const statusBadge = document.getElementById('game-status-badge');
+        const alertStatusBox = document.getElementById('player-status-alert');
+        
+        if (data.gameStatus === "lobby") {
+            statusBadge.innerText = "بانتظار المدير يقفل الكلمة السرية... ⏳";
+            statusBadge.className = "text-warning";
+            alertStatusBox.classList.add('d-none');
+            document.getElementById('guess-input').disabled = true;
+            document.getElementById('guess-btn').disabled = true;
+        } else if (data.gameStatus === "playing") {
+            statusBadge.innerText = "الجيم شغال.. الكلمة مقفلة! 🔥";
+            statusBadge.className = "text-success";
+            
+            if (lastKnownStatus === "lobby") {
+                alertStatusBox.innerText = "🚨 بدأت الجولة رسمياً! المدير قفل الكلمة السرية.. ابدأوا التخمين وحل التحديات الحين! 🔥";
+                alertStatusBox.classList.remove('d-none');
+            }
+            
+            if (pAttempts > 0) {
+                document.getElementById('guess-input').disabled = false;
+                document.getElementById('guess-btn').disabled = false;
+            }
         }
-
-        if (data.hostUID === myUID) {
-            pDatabase.ref('rooms/' + pRoomCode).off();
-            alert("👑 تم تعيينك كمدير جديد للروم الحين!");
-            localStorage.removeItem('sd_role');
-            localStorage.setItem('sd_role', 'host');
-            window.location.reload();
-            return;
-        }
+        lastKnownStatus = data.gameStatus;
 
         const membersDiv = document.getElementById('player-all-members-list');
         if (membersDiv) {
@@ -210,7 +211,7 @@ function startPlayerListeners() {
                     pRow.style.padding = "6px 10px";
                     pRow.style.background = "#1e293b";
                     pRow.style.borderRadius = "4px";
-                    pRow.innerHTML = `🎮 ${pItem.name}`;
+                    pRow.innerHTML = `🎮 ${pItem.name || "لاعب متصل"}`;
                     membersDiv.appendChild(pRow);
                 }
             }
@@ -221,9 +222,6 @@ function startPlayerListeners() {
         if (data.players && data.players[myUID]) {
             pAttempts = data.players[myUID].attempts !== undefined ? data.players[myUID].attempts : 3;
             document.getElementById('remaining-attempts').innerText = pAttempts;
-            if (pAttempts > 0 && data.gameStatus === "playing") {
-                document.getElementById('guess-input').disabled = false;
-            }
         }
 
         if (data.gameStatus === "voting") {
@@ -255,6 +253,8 @@ function startPlayerListeners() {
             hintItem.className = "msg";
             hintItem.style.backgroundColor = "#1e293b";
             hintItem.style.borderRight = "3px solid #00ffcc";
+            hintItem.style.padding = "4px 8px";
+            hintItem.style.marginBottom = "4px";
             hintItem.innerHTML = `💡 ${hintText}`;
             hintsBox.appendChild(hintItem);
         }
@@ -271,6 +271,7 @@ function startPlayerListeners() {
             const msgData = messages[msgId];
             const msgItem = document.createElement('div');
             msgItem.className = "msg msg-player";
+            msgItem.style.padding = "4px 8px";
             msgItem.innerHTML = `<strong>${msgData.sender}:</strong> ${msgData.text}`;
             chatBox.appendChild(msgItem);
         }
@@ -295,20 +296,45 @@ function submitGuess() {
                 gameStatus: "word_guessed_waiting",
                 winnerWordPlayer: playerName
             });
-            alert("🎯 كفوووو جبت الكلمة صح! الحين انتظر المدير يطلق مرحلة التصويت لاحقاً طقطق عليهم بالشات 😉");
+            alert("🎯 كفوووو جبت الكلمة صح! الحين انتظر المدير يطلق مرحلة التصويت لاحقاً 😉");
         } else {
             pAttempts--;
             document.getElementById('remaining-attempts').innerText = pAttempts;
             pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).update({ attempts: pAttempts });
 
             if (pAttempts <= 0) {
-                alert("انتهت محاولاتك الـ 3!");
+                alert("انتهت محاولاتك الـ 3 لتخمين الكلمة حالياً!");
                 guessInput.disabled = true;
+                document.getElementById('guess-btn').disabled = true;
             } else {
                 alert(`خطأ! متبقي لك: ${pAttempts} محاولات`);
             }
         }
         guessInput.value = "";
+    });
+}
+
+// 🎯 دالة إرسال التحدي الموثقة بالملي ثانية الحية من الفايربيس
+function submitChallengeAnswer() {
+    const answerInput = document.getElementById('challenge-answer-input');
+    const answerText = answerInput.value.trim();
+    if (!answerText || !pDatabase) return;
+
+    pDatabase.ref('rooms/' + pRoomCode).once('value', (rSnap) => {
+        const rData = rSnap.val() || {};
+        const currentR = rData.currentRound || 1;
+
+        // إرسال الجواب مع وسم الوقت الفعلي لترتيب الأسرع
+        pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID + '/challengeHistory/' + currentR).set({
+            answer: answerText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP // توثيق الوقت بالملي ثانية من السيرفر فوراً
+        }).then(() => {
+            pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).update({
+                challengeAnswer: answerText
+            });
+            answerInput.value = "";
+            alert(`تم إرسال جوابك للتحدي [ ${currentR} ] بنجاح! المدير بيقنص الأسرع الحين بالبث 😎`);
+        });
     });
 }
 
@@ -338,12 +364,11 @@ function openVoteScreen(roomData) {
         
         hasOptions = true;
         const btn = document.createElement('button');
-        btn.className = "btn btn-player";
+        btn.className = "btn btn-outline-light text-start";
         btn.style.margin = "5px 0";
         btn.style.width = "100%";
-        btn.style.padding = "12px";
-        btn.style.fontSize = "1.05rem";
-        btn.innerText = players[idKey].name;
+        btn.style.padding = "14px";
+        btn.innerText = `🎮 اللاعب: ${players[idKey].name || "مجهول"}`;
         
         btn.onclick = function() {
             const confirmChoice = confirm(`هل أنت متأكد وتبغى تصوت وتخمن إن [ ${players[idKey].name} ] هو اللي جاب الكلمة؟`);
@@ -361,30 +386,6 @@ function openVoteScreen(roomData) {
     if (!hasOptions) {
         voteGrid.innerHTML = "<h3>لا يوجد لاعبين آخرين للتصويت لهم بالروم! 🔍</h3>";
     }
-}
-
-function submitChallengeAnswer() {
-    const answerInput = document.getElementById('challenge-answer-input');
-    const answerText = answerInput.value.trim();
-    if (!answerText || !pDatabase) return;
-
-    pDatabase.ref('rooms/' + pRoomCode).once('value', (rSnap) => {
-        const rData = rSnap.val() || {};
-        const currentR = rData.currentRound || 1;
-
-        pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID + '/challengeHistory/' + currentR).set({
-            answer: answerText,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        pDatabase.ref('rooms/' + pRoomCode + '/players/' + myUID).update({
-            challengeAnswer: answerText,
-            challengeRound: currentR
-        });
-
-        answerInput.value = "";
-        alert("تم إرسال جوابك وتثبيت ترتيبك سرياً للمدير!");
-    });
 }
 
 function sendChatMessage() {
