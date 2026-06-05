@@ -46,7 +46,7 @@
             color: #ff007c;
             background: rgba(255, 0, 124, 0.1);
         }
-        .sticky-navbar .nav-links-center .nav-donation {
+        .sticky-navbar .nav-donation {
             background: #ff007c;
             color: white !important;
             box-shadow: 0 0 15px rgba(255, 0, 124, 0.6);
@@ -88,7 +88,6 @@
             display: inline-block;
             margin-bottom: 15px;
         }
-        /* خط الفاصل الذكي للجولات في صندوق الإجابات للمدير */
         .round-line-divider {
             display: flex;
             align-items: center;
@@ -115,7 +114,6 @@
 </head>
 <body>
 
-    <!-- ==================== شريط الحسابات الثابت ==================== -->
     <div class="sticky-navbar">
         <div class="nav-title">🕵️‍♂️ شفرة المحقق السري</div>
         <div class="nav-links-center">
@@ -129,7 +127,6 @@
         </div>
     </div>
 
-    <!-- ==================== 1. شاشة الدخول ==================== -->
     <div id="auth-screen" class="container">
         <header>
             <h1>🕵️‍♂️ شفرة المحقق السري</h1>
@@ -165,12 +162,14 @@
         </div>
     </div>
 
-    <!-- ==================== 2. لوحة تحكم المدير ==================== -->
     <div id="host-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
                 <div class="card">
-                    <h2>👑 لوحة تحكم المدير <span id="display-room-code" class="badge">رمز الروم: ----</span></h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>👑 لوحة تحكم المدير <span id="display-room-code" class="badge">رمز الروم: ----</span></h2>
+                        <button type="button" onclick="leaveRoomButton()" class="btn" style="background: #ef4444; color: white; width: auto; font-size: 0.85rem; padding: 6px 12px; margin: 0;">خروج وصنع روم جديد 🚪</button>
+                    </div>
                     
                     <div class="form-group inline-group">
                         <input type="text" id="secret-word" placeholder="اكتب الكلمة أو الجملة السرية الثابتة هنا">
@@ -203,7 +202,6 @@
                     </div>
                 </div>
 
-                <!-- صندوق إجابات التحديات الثابت مع خطوط الفواصل الذكية -->
                 <div class="card chat-card" style="margin-top: 20px;">
                     <h3>📥 إجابات التحديات التاريخية وترتيب الأسرع (سري لك)</h3>
                     <div id="host-challenges-box" class="messages-container"></div>
@@ -218,12 +216,14 @@
         </div>
     </div>
 
-    <!-- ==================== 3. واجهة اللاعب ==================== -->
     <div id="player-screen" class="container d-none">
         <div class="game-layout">
             <div class="main-panel">
                 <div class="card">
-                    <div class="room-code-box" id="player-display-room-code">رمز الروم الحالي: ----</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div class="room-code-box" id="player-display-room-code" style="margin-bottom:0;">رمز الروم الحالي: ----</div>
+                        <button type="button" onclick="leaveRoomButton()" class="btn" style="background: #ef4444; color: white; width: auto; font-size: 0.85rem; padding: 6px 12px; margin: 0;">خروج وصنع روم كمدير 🚪</button>
+                    </div>
                     <h2>🎮 خانة التخمين السري</h2>
                     <p>حاول حزر الكلمة السرية (يتحكم المدير بعدد محاولاتك)</p>
                     <div class="form-group inline-group">
@@ -259,7 +259,7 @@
                     </div>
                 </div>
                 <div class="card">
-                    <h3>🥊 إرسال حل التحدي للمدير</h3>
+                    <h3>👥 إرسال حل التحدي للمدير</h3>
                     <div class="form-group">
                         <input type="text" id="challenge-answer-input" placeholder="اكتب جواب تحدي الجولة هنا...">
                     </div>
@@ -269,7 +269,6 @@
         </div>
     </div>
 
-    <!-- ==================== 4. شاشة التصويت النهائي ==================== -->
     <div id="vote-screen" class="container d-none">
         <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
             <h2 style="color: #ff007c;">🚨 انطلقت مرحلة التصويت الحين!</h2>
