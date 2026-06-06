@@ -1,7 +1,3 @@
-// ==========================================
-// ملف التحكم الخاص بالمدير (Host) - نسخة الجدول الزمني الاحترافي
-// ==========================================
-
 let database;
 let roomCode = "";
 let myUID = ""; 
@@ -56,9 +52,7 @@ function initHost() {
         listenToChallengeAnswers();
         listenToChatForHost();
         listenToGameStatusForHost();
-    }).catch(err => {
-        alert("خطأ في إنشاء الغرفة: " + err.message);
-    });
+    }).catch(err => { alert("خطأ: " + err.message); });
 }
 
 function setupHostPresence() {
@@ -69,6 +63,7 @@ function setupHostPresence() {
 function listenToPlayers() {
     database.ref('rooms/' + roomCode + '/players').on('value', (snapshot) => {
         const playersListDiv = document.getElementById('host-players-list');
+        if(!playersListDiv) return;
         playersListDiv.innerHTML = "";
         const players = snapshot.val();
 
@@ -80,31 +75,21 @@ function listenToPlayers() {
         for (let idKey in players) {
             const player = players[idKey];
             const pRow = document.createElement('div');
-            pRow.className = "player-row-admin";
-            pRow.style.display = "flex";
-            pRow.style.justifyContent = "space-between";
-            pRow.style.alignItems = "center";
-            pRow.style.padding = "10px";
-            pRow.style.background = "#1e293b";
-            pRow.style.borderRadius = "8px";
-            pRow.style.marginBottom = "6px";
+            pRow.style.display = "flex"; pRow.style.justifyContent = "space-between"; pRow.style.alignItems = "center";
+            pRow.style.padding = "10px"; pRow.style.background = "#1e293b"; pRow.style.borderRadius = "8px"; pRow.style.marginBottom = "6px";
 
             const currentAttempts = player.attempts !== undefined ? player.attempts : 3;
             const hintCount = player.manualHintCount !== undefined ? player.manualHintCount : 0;
-            const displayName = player.name ? player.name : "لاعب متصل";
 
             pRow.innerHTML = `
                 <div>
-                    <span style="font-weight:bold; color:#fff;">🎮 ${displayName}</span>
-                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:2px;">
-                        <span>المحاولات: <strong style="color:#ef4444">${currentAttempts}</strong></span> | 
-                        <span>التلميحات: <strong style="color:#00ffcc">${hintCount}</strong></span>
-                    </div>
+                    <span style="font-weight:bold; color:#fff;">🎮 ${player.name}</span>
+                    <div style="font-size:0.8rem; color:#94a3b8;">المحاولات: <strong style="color:#ef4444">${currentAttempts}</strong> | تلميحات: <strong>${hintCount}</strong></div>
                 </div>
-                <div class="action-btn-group" style="display:flex; gap:5px;">
-                    <button type="button" onclick="giveManualHint('${idKey}', '${displayName}')" class="btn btn-sm" style="background:#0284c7; color:white;">💡 تلميح</button>
-                    <button type="button" onclick="modifyPlayerAttempts('${idKey}', ${currentAttempts})" class="btn btn-sm" style="background:#f59e0b; color:white;">⚙️ محاولات</button>
-                    <button type="button" onclick="kickPlayer('${idKey}', '${displayName}')" class="btn btn-sm" style="background:#ef4444; color:white;">❌ طرد</button>
+                <div>
+                    <button onclick="giveManualHint('${idKey}', '${player.name}')" class="btn btn-sm btn-info text-dark">💡 تلميح</button>
+                    <button onclick="modifyPlayerAttempts('${idKey}', ${currentAttempts})" class="btn btn-sm btn-warning">⚙️ محاولات</button>
+                    <button onclick="kickPlayer('${idKey}', '${player.name}')" class="btn btn-sm btn-danger">❌ طرد</button>
                 </div>
             `;
             playersListDiv.appendChild(pRow);
@@ -113,254 +98,119 @@ function listenToPlayers() {
 }
 
 function listenToChallengeAnswers() {
-    database.ref('rooms/' + roomCode + '/players').on('value', (snapshot) => {
-        const box = document.getElementById('host-challenges-box');
-        box.innerHTML = "";
-        const players = snapshot.val();
-        
-        if (!players) {
-            box.innerHTML = '<span class="empty-state">لا يوجد إجابات تحديات حالياً...</span>';
-            return;
-        }
-
-        let allAnswers = [];
-        for (let idKey in players) {
-            const p = players[idKey];
-            if (p.challengeHistory) {
-                for (let rNum in p.challengeHistory) {
-                    allAnswers.push({
-                        name: p.name || "مجهول",
-                        round: parseInt(rNum),
-                        answer: p.challengeHistory[rNum].answer,
-                        timestamp: p.challengeHistory[rNum].timestamp || 0
-                    });
-                }
-            }
-        }
-
-        if (allAnswers.length === 0) {
-            box.innerHTML = '<span class="empty-state">لم يرسل أي لاعب حل التحدي بعد.</span>';
-            return;
-        }
-
-        allAnswers.sort((a, b) => {
-            if (a.round !== b.round) return b.round - a.round;
-            return a.timestamp - b.timestamp;
-        });
-
-        let lastRenderedRound = null;
-        let rankInRound = 1;
-
-        allAnswers.forEach(item => {
-            if (item.round !== lastRenderedRound) {
-                lastRenderedRound = item.round;
-                rankInRound = 1;
-                
-                const divider = document.createElement('div');
-                divider.className = "round-divider";
-                divider.innerHTML = `<span>🎯 تحديات وإجابات الجولة [ ${item.round} ]</span>`;
-                box.appendChild(divider);
-            }
-
-            let timeString = "بدون توقيت";
-            if (item.timestamp) {
-                const date = new Date(item.timestamp);
-                const hrs = String(date.getHours()).padStart(2, '0');
-                const mins = String(date.getMinutes()).padStart(2, '0');
-                const secs = String(date.getSeconds()).padStart(2, '0');
-                const ms = String(date.getMilliseconds()).padStart(3, '0');
-                timeString = `${hrs}:${mins}:${secs}.${ms}`;
-            }
-
-            const isFirst = rankInRound === 1;
-            const badgeText = isFirst ? "🥇 الأسرع" : `#${rankInRound}`;
-            const badgeBg = isFirst ? "#f59e0b" : "#475569";
-
-            const row = document.createElement('div');
-            row.style.background = isFirst ? "rgba(245, 158, 11, 0.15)" : "#1e293b";
-            row.style.borderRight = isFirst ? "4px solid #f59e0b" : "3px solid #38bdf8";
-            row.style.padding = "8px 12px";
-            row.style.borderRadius = "6px";
-            row.style.marginBottom = "5px";
-            row.style.display = "flex";
-            row.style.justifyContent = "space-between";
-            row.style.alignItems = "center";
-
-            row.innerHTML = `
-                <div>
-                    <span class="badge" style="background:${badgeBg}; margin-left:8px;">${badgeText}</span>
-                    <strong>${item.name}</strong>: <span style="color:#38bdf8; font-weight:bold;">${item.answer}</span>
-                </div>
-                <small style="color:#64748b; font-family:monospace; font-size:0.75rem;">⏱️ ${timeString}</small>
-            `;
-
-            box.appendChild(row);
-            rankInRound++;
-        });
-    });
-}
-
-function saveSecretWord() {
-    const wordInput = document.getElementById('secret-word');
-    const wordText = wordInput.value.trim();
-    if (!wordText) {
-        alert("اكتب كلمة أولاً لتثبيتها للشباب!");
-        return;
-    }
-
-    database.ref('rooms/' + roomCode).update({
-        secretWord: wordText,
-        gameStatus: "playing",
-        winnerWordPlayer: ""
-    }).then(() => {
-        database.ref('rooms/' + roomCode + '/chat').push({
-            sender: "📢 [النظام]",
-            text: "المدير قفل وثبّت الكلمة السرية المحورية الحين! خانة التخمين مفتوحة للاعبين.. ورونا ذكائكم! 🔥"
-        });
-        alert("🔒 تم تثبيت وقفل الكلمة السرية المحورية بنجاح طول القيم الحين!");
-    });
-}
-
-function activateVotingStage() {
-    database.ref('rooms/' + roomCode).update({ gameStatus: "voting" }).then(() => {
-        alert("🚀 تم إطلاق شاشة التصويت الإجباري لجميع اللاعبين بنجاح!");
-    });
-}
-
-function nextRound() {
-    currentRound++;
-    database.ref('rooms/' + roomCode).update({
-        currentRound: currentRound,
-        gameStatus: "playing",
-        winnerWordPlayer: ""
-    });
-
-    database.ref('rooms/' + roomCode + '/players').once('value', (snapshot) => {
-        const players = snapshot.val();
-        if (players) {
-            for (let idKey in players) {
-                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ challengeAnswer: "" });
-            }
-        }
-    });
-
-    database.ref('rooms/' + roomCode + '/chat').push({
-        sender: "📢 [النظام]",
-        text: `انتقلنا للتحدي رقم [ ${currentRound} ]! ركزوا مع المدير بالبث لمعرفة السؤال الجديد وعطوه الحل الأسرع! 🚀`
-    });
-
-    document.getElementById('host-current-round').innerText = currentRound;
-    alert(`➡️ انتقلت للجولة والتحدي رقم [ ${currentRound} ] بنجاح، والكلمة السرية ثابتة ومحفوظة!`);
-}
-
-function clearCurrentRoundAnswers() {
-    if (!confirm("هل أنت متأكد وتبغى تمسح أجوبة التحدي حقت الجولة الحالية بس عشان يعيدون كتابتها؟")) return;
-    database.ref('rooms/' + roomCode + '/players').once('value', (snapshot) => {
-        const players = snapshot.val();
-        if (players) {
-            for (let idKey in players) {
-                database.ref('rooms/' + roomCode + '/players/' + idKey + '/challengeHistory/' + currentRound).remove();
-                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ challengeAnswer: "" });
-            }
-        }
-    });
-    alert("🗑️ تم تنظيف كشف التحدي للجولة الحالية بنجاح.");
-}
-
-function resetFullGame() {
-    if (!confirm("هل أنت متأكد من إعادة تصفير الجيم والكلمة بالكامل للجولة 1 وفتح المحاولات Mom؟")) return;
-    currentRound = 1;
-
-    database.ref('rooms/' + roomCode).update({
-        currentRound: 1,
-        gameStatus: "lobby",
-        secretWord: "",
-        winnerWordPlayer: ""
-    });
-
-    database.ref('rooms/' + roomCode + '/players').once('value', (snapshot) => {
-        const players = snapshot.val();
-        if (players) {
-            for (let idKey in players) {
-                database.ref('rooms/' + roomCode + '/players/' + idKey).update({
-                    challengeAnswer: "",
-                    votedFor: "",
-                    attempts: 3,
-                    manualHintCount: 0
-                });
-                database.ref('rooms/' + roomCode + '/players/' + idKey + '/hints').remove();
-                database.ref('rooms/' + roomCode + '/players/' + idKey + '/challengeHistory').remove();
-            }
-        }
-    });
-
-    document.getElementById('secret-word').value = "";
-    document.getElementById('host-current-round').innerText = 1;
-    alert("🔄 تم نسف وإعادة تصفير الجلسة بالكامل للبداية!");
-}
-
-function sendHostChatMessage() {
-    const chatInput = document.getElementById('host-chat-input');
-    const msgText = chatInput.value.trim();
-    if (!msgText || !database) return;
-
-    database.ref('rooms/' + roomCode + '/chat').push({
-        sender: `👑 المدير (${hostName})`,
-        text: msgText
-    });
-    chatInput.value = "";
+    // مستمع عام لتحديث الأجوبة بلوحة التحكم
 }
 
 function listenToChatForHost() {
     database.ref('rooms/' + roomCode + '/chat').on('value', (snapshot) => {
-        const chatBox = document.getElementById('host-chat-box');
-        if (!chatBox) return;
-        chatBox.innerHTML = "";
+        const chatLog = document.getElementById('host-chat-log');
+        if (!chatLog) return;
+        chatLog.innerHTML = "";
         const messages = snapshot.val();
         if (!messages) return;
 
-        for (let msgId in messages) {
-            const msgData = messages[msgId];
-            const msgItem = document.createElement('div');
-            msgItem.className = "msg msg-host";
-            msgItem.style.padding = "4px 8px";
-            msgItem.innerHTML = `<strong>${msgData.sender}:</strong> ${msgData.text}`;
-            chatBox.appendChild(msgItem);
+        for (let mKey in messages) {
+            const msg = messages[mKey];
+            const div = document.createElement('div');
+            div.className = msg.sender.includes("👑") ? "msg msg-host text-end ms-auto mb-1" : "msg msg-player text-end me-auto mb-1";
+            div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
+            chatLog.appendChild(div);
         }
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatLog.scrollTop = chatLog.scrollHeight;
     });
 }
 
 function listenToGameStatusForHost() {
-    // مستمع إضافي للمدير لمتابعة التحديثات الهيكلية إن لزم الأمر
+    database.ref('rooms/' + roomCode).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const adminStatusBadge = document.getElementById('admin-game-status-badge');
+        if (data.gameStatus === "lobby") {
+            adminStatusBadge.innerText = "انتظار قفل الكلمة السرية 🔑";
+            document.getElementById('btn-lock-word').disabled = false;
+            document.getElementById('btn-reset-lobby').classList.add('d-none');
+        } else if (data.gameStatus === "playing") {
+            adminStatusBadge.innerText = "الجولة شغالة.. التخمين مفتوح! 🏃‍♂️🔥";
+            document.getElementById('btn-lock-word').disabled = true;
+            document.getElementById('btn-reset-lobby').classList.remove('d-none');
+        } else if (data.gameStatus === "voting") {
+            adminStatusBadge.innerText = "🗳️ مرحلة التصويت الإجباري نشطة!";
+            document.getElementById('btn-reset-lobby').classList.remove('d-none');
+            showLiveVotesToAdmin(data.players, data.winnerWordPlayer);
+        }
+    });
 }
 
-function giveManualHint(playerUID, pName) {
-    const hintText = prompt(`اكتب التلميح الخاص السري للاعب [ ${pName} ] (محد بيشوفه غيره):`);
-    if (!hintText || !hintText.trim()) return;
+function showLiveVotesToAdmin(players, luckyPlayer) {
+    const answersDiv = document.getElementById('host-challenges-log');
+    if (!answersDiv) return;
+    answersDiv.innerHTML = `<div style="background: rgba(139, 92, 246, 0.1); padding: 10px; border-radius: 6px; border: 1px dashed #8b5cf6;">
+        🎉 <strong>المحقق الفائز بالكلمة:</strong> <span style="color:#a78bfa; font-weight:bold;">${luckyPlayer || "غير معروف"}</span>
+    </div><h5 class="text-purple mt-3 mb-2">📥 أصوات اللاعبين الحالية:</h5>`;
 
-    const pRef = database.ref('rooms/' + roomCode + '/players/' + playerUID);
-    pRef.child('hints').push(hintText.trim());
-    pRef.child('manualHintCount').transaction((currentCount) => { return (currentCount || 0) + 1; });
-    alert(`💡 تم إرسال التلميح السري إلى ${pName} بنجاح!`);
-}
-
-function modifyPlayerAttempts(playerUID, currentAtt) {
-    const newAttStr = prompt(`تعديل عدد المحاولات الحالي للاعب. اكتب الرقم الجديد:`, currentAtt);
-    if (newAttStr === null) return;
-    const newAtt = parseInt(newAttStr);
-    if (isNaN(newAtt) || newAtt < 0) {
-        alert("الرجاء كتابة رقم صحيح ومقبول!");
-        return;
+    let hasVotes = false;
+    if (players) {
+        for (let idKey in players) {
+            const p = players[idKey];
+            if (p.votedFor) {
+                hasVotes = true;
+                const vBlock = document.createElement('div');
+                vBlock.style.background = "#0f172a"; vBlock.style.padding = "8px 12px"; vBlock.style.borderRadius = "6px"; vBlock.style.marginBottom = "5px";
+                vBlock.innerHTML = `🗳️ اللاعب <strong>${p.name}</strong> يصوت ضد 👈 <span class="text-danger" style="font-weight:bold;">${p.votedFor}</span>`;
+                answersDiv.appendChild(vBlock);
+            }
+        }
     }
-    database.ref('rooms/' + roomCode + '/players/' + playerUID).update({ attempts: newAtt });
-    alert("⚙️ تم تحديث عدد محاولات اللاعب فوراً في السيرفر!");
+    if(!hasVotes) answersDiv.innerHTML += `<span class="empty-state">بانتظار تصويت المحققين... 🗳️</span>`;
+}
+
+function lockSecretWord() {
+    const wordInput = document.getElementById('secret-word-input');
+    const word = wordInput.value.trim();
+    if (!word) return;
+
+    database.ref('rooms/' + roomCode).update({ secretWord: word, gameStatus: "playing" }).then(() => {
+        wordInput.value = "";
+        database.ref('rooms/' + roomCode + '/chat').push({ sender: "👑 المدير", text: "🔒 تم قفل الكلمة وبدأت الجولة الحين!" });
+    });
+}
+
+function resetRoomToLobby() {
+    if (!confirm("هل أنت متأكد من إنهاء الجولة والعودة للوبي لبدء قيم جديد؟")) return;
+    database.ref('rooms/' + roomCode + '/players').once('value', (snap) => {
+        const players = snap.val();
+        if (players) {
+            for (let idKey in players) {
+                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ attempts: 3, challengeAnswer: "", votedFor: "", hints: null, manualHintCount: 0 });
+            }
+        }
+        database.ref('rooms/' + roomCode).update({ gameStatus: "lobby", secretWord: "", winnerWordPlayer: "" }).then(() => {
+            database.ref('rooms/' + roomCode + '/chat').remove();
+            alert("🔄 تم العودة للوبي بنجاح!");
+        });
+    });
 }
 
 function kickPlayer(playerUID, pName) {
-    if (!confirm(`هل أنت متأكد من طرد اللاعب [ ${pName} ] وحظر دخوله للروم مجدداً؟`)) return;
-    database.ref('rooms/' + roomCode + '/blacklist/' + playerUID).set(true).then(() => {
-        database.ref('rooms/' + roomCode + '/players/' + playerUID).remove();
-        alert(`❌ تم طرد ${pName} ووضعه في القائمة السوداء للروم.`);
-    });
+    if (confirm(`طرد [ ${pName} ] نهائياً؟`)) {
+        database.ref('rooms/' + roomCode + '/blacklist/' + playerUID).set(true).then(() => {
+            database.ref('rooms/' + roomCode + '/players/' + playerUID).remove();
+        });
+    }
+}
+
+function giveManualHint(playerUID, pName) {
+    const hintText = prompt(`تلميح سري لـ [ ${pName} ] (محد بيشوفه غيره):`);
+    if (!hintText || !hintText.trim()) return;
+    const pRef = database.ref('rooms/' + roomCode + '/players/' + playerUID);
+    pRef.child('hints').push(hintText.trim());
+    pRef.child('manualHintCount').transaction((c) => { return (c || 0) + 1; });
+}
+
+function modifyPlayerAttempts(playerUID, currentAtt) {
+    const newAttStr = prompt(`اكتب المحاولات الجديدة:`, currentAtt);
+    if (newAttStr === null) return;
+    const newAtt = parseInt(newAttStr);
+    if (!isNaN(newAtt) && newAtt >= 0) database.ref('rooms/' + roomCode + '/players/' + playerUID).update({ attempts: newAtt });
 }

@@ -12,9 +12,9 @@ const firebaseConfig = {
     appId: "1:663254171790:web:464aec6dc57e30e05289df"
 };
 
-// روابط الحسابات تظهر تلقائياً أسفل وفي هيدر الموقع
+// روابط حسابات البث والدعم تفتح تلقائياً في نافذة جديدة بدون تكرار فتح اللعبة
 const mySocialLinks = {
-    donation: "https://tip.dokan.sa/keira?utm_medium=social&utm_source=heylink.me",
+    donation: "https://tip.dokan.sa/keira?utm_medium=social&utm_source=heylink.me", 
     tiktok: "https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc", 
     youtube: "https://www.youtube.com/@ikeira1", 
     twitch: "https://www.twitch.tv/ikeira1" 
