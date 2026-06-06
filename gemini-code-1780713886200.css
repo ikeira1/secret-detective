@@ -1,0 +1,183 @@
+/* ==========================================
+/* ملف التنسيق الأنيق والكامل - لعبة المحقق السري
+/* ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Cairo:wght@400;700;900&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+}
+
+body {
+    background-color: #0d0f18; /* لون غامق عميق مريح للعين أثناء البث والألعاب */
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 15px;
+}
+
+/* فئة الإخفاء السريع للتبديل بين الشاشات */
+.d-none {
+    display: none !important;
+}
+
+/* كروت اللعبة وتصميم الواجهات */
+.game-card {
+    background-color: #151926;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+    border: 1px solid #22293f;
+    text-align: right;
+}
+
+.style-title {
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+}
+
+.hr-text {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.hr-text::before, .hr-text::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #22293f;
+}
+
+.hr-text:not(:empty)::before {
+    margin-left: .5em;
+}
+
+.hr-text:not(:empty)::after {
+    margin-right: .5em;
+}
+
+/* صناديق الرسائل والشات الحي والجداول */
+.box-log {
+    background: #0b0d14;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #1e2436;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.msg {
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 85%;
+    width: fit-content;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.msg-host { 
+    background-color: rgba(0, 255, 204, 0.1);
+    border-right: 3px solid #00ffcc; 
+    color: #fff;
+}
+
+.msg-player { 
+    background-color: #1e2538;
+    border-right: 3px solid #ff007c; 
+    color: #f1f5f9;
+}
+
+/* فواصل جولات التحدي */
+.round-divider {
+    text-align: center;
+    margin: 15px 0 5px 0;
+    position: relative;
+}
+
+.round-divider span {
+    background: #f59e0b;
+    color: #000;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.empty-state {
+    color: #475569;
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 10px 0;
+}
+
+/* أسطر اللاعبين بلوحة التحكم */
+.player-row-admin {
+    border: 1px solid #22293f;
+    transition: all 0.2s ease;
+}
+
+.player-row-admin:hover {
+    background-color: #232d42 !important;
+}
+
+/* أزرار وشاشة التصويت المطور */
+.vote-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.vote-btn {
+    background-color: #1e2436;
+    border: 1px solid #2d364f;
+    color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.vote-btn:hover {
+    background-color: #ff007c;
+    border-color: #ff007c;
+}
+
+/* تذييل الصفحة والملاحظات السفلية */
+.game-footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px 0;
+}
+
+.game-footer hr {
+    border: 0;
+    border-top: 1px solid #1e2436;
+    margin-bottom: 15px;
+}
+
+.game-footer p {
+    color: #64748b;
+    font-size: 0.85rem;
+}
