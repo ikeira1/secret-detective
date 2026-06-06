@@ -137,17 +137,17 @@
 </head>
 <body>
 
-    <!-- الهيدر المرن - حط روابطك الحقيقية هنا بدال الكلمات المكتوبة -->
+    <!-- الهيدر المرن - يقفل الروابط تلقائياً من ملف الاعدادات -->
     <header class="custom-header">
         <div class="header-brand">
             <span>🕵️‍♂️</span>
             <h1>شفرة المحقق السري</h1>
         </div>
         <div class="header-links">
-            <a href="رابط_دكان_تيب_هنا" target="_blank" class="link-donate">☕ دعم مادي (دكان تيب)</a>
-            <a href="رابط_تيك_توك_هنا" target="_blank" class="link-tiktok">🎵 تيك توك</a>
-            <a href="رابط_يوتيوب_هنا" target="_blank" class="link-youtube">📺 يوتيوب</a>
-            <a href="رابط_تويتش_هنا" target="_blank" class="link-twitch">🎮 تويتش</a>
+            <a id="nav-donate" href="#" target="_blank" class="link-donate">☕ دعم مادي (دكان تيب)</a>
+            <a id="nav-tiktok" href="#" target="_blank" class="link-tiktok">🎵 تيك توك</a>
+            <a id="nav-youtube" href="#" target="_blank" class="link-youtube">📺 يوتيوب</a>
+            <a id="nav-twitch" href="#" target="_blank" class="link-twitch">🎮 تويتش</a>
             <button onclick="leaveRoomButton()" class="btn-leave-top">🚪 خروج</button>
         </div>
     </header>
@@ -296,7 +296,7 @@
         <!-- 4. شاشة التصويت الإجباري (Vote Screen) -->
         <div id="vote-screen" class="row d-none">
             <div class="col-md-6 mx-auto text-center">
-                <div class="game-card style="border: 2px solid #8b5cf6;">
+                <div class="game-card" style="border: 2px solid #8b5cf6;">
                     <h2 class="text-purple" style="color:#a78bfa;">🗳️ مرحلة التصويت الإجباري!</h2>
                     <p class="lead">أحد المحققين قفط الكلمة السرية الصحيحة! خمن الحين وصوت على اللاعب اللي تعتقد إنه هو اللي عرف الكلمة وفوز الجيم:</p>
                     <hr style="border-color:#8b5cf6;">
@@ -317,7 +317,7 @@
     
     <!-- الملفات بترتيب الاستدعاء الصحيح لمنع أي تعارض -->
     <script src="config.js"></script>
-    <script src="host.js?v=1.3"></script>
-    <script src="player.js?v=1.3"></script>
+    <script src="host.js?v=1.4"></script>
+    <script src="player.js?v=1.4"></script>
 </body>
 </html>

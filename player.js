@@ -38,9 +38,17 @@ function leaveRoomButton() {
     }
 }
 
-// تشغيل الفحص التلقائي للجلسات السابقة بأمان تام بدون تعطيل الأزرار الأخرى
+// تشغيل الفحص التلقائي وربط حساباتك بالهيدر برمجياً لمنع أي تعارض بالأزرار
 document.addEventListener("DOMContentLoaded", () => {
     getOrCreateUID();
+    
+    // ربط الحسابات بالهيدر تلقائياً من ملف الـ config بأمان
+    if (typeof mySocialLinks !== 'undefined') {
+        if(document.getElementById('nav-donate')) document.getElementById('nav-donate').href = mySocialLinks.donation;
+        if(document.getElementById('nav-tiktok')) document.getElementById('nav-tiktok').href = mySocialLinks.tiktok;
+        if(document.getElementById('nav-youtube')) document.getElementById('nav-youtube').href = mySocialLinks.youtube;
+        if(document.getElementById('nav-twitch')) document.getElementById('nav-twitch').href = mySocialLinks.twitch;
+    }
     
     if (typeof firebaseConfig === 'undefined') {
         console.error("تنبيه: ملف config.js غير مقروء بشكل صحيح!");
@@ -60,15 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 playerName = localStorage.getItem('sd_playerName') || "";
                 
                 if (savedRole === 'host') {
-                    // إذا كان المشغل مدير، نقوم بتهيئة متغيرات ملف الـ host
+                    // حماية الأزرار: لا نقوم بتعريف متغيرات الـ Host هنا كمتغيرات عامة لمنع ضرب الأزرار
                     if (typeof database !== 'undefined') database = checkDb;
                     if (typeof roomCode !== 'undefined') roomCode = savedRoom;
                     if (typeof hostName !== 'undefined') hostName = playerName;
                     
-                    document.getElementById('auth-screen').classList.add('d-none');
-                    document.getElementById('host-screen').classList.remove('d-none');
-                    document.getElementById('display-room-code').innerText = `رمز الروم: ${savedRoom}`;
-                    document.getElementById('host-max-rounds').innerText = snap.val().maxRounds || 5;
+                    if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.add('d-none');
+                    if (document.getElementById('host-screen')) document.getElementById('host-screen').classList.remove('d-none');
+                    if (document.getElementById('display-room-code')) document.getElementById('display-room-code').innerText = `رمز الروم: ${savedRoom}`;
+                    if (document.getElementById('host-max-rounds')) document.getElementById('host-max-rounds').innerText = snap.val().maxRounds || 5;
                     
                     const hostInputField = document.getElementById('host-name');
                     if (hostInputField) hostInputField.value = playerName;
@@ -76,17 +84,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (typeof listenToPlayers === "function") listenToPlayers();
                     if (typeof listenToChallengeAnswers === "function") listenToChallengeAnswers();
                     if (typeof listenToChatForHost === "function") listenToChatForHost();
-                    if (typeof listenToGameStatusForHost === "function") listenToGameStatusForHost();
                     if (typeof setupHostPresence === "function") setupHostPresence();
                 } else {
                     pDatabase = checkDb;
                     pDatabase.ref('rooms/' + pRoomCode + '/players/' + localStorage.getItem('sd_my_uid')).once('value', (pSnap) => {
                         if (pSnap.exists()) {
                             pAttempts = pSnap.val().attempts !== undefined ? pSnap.val().attempts : 3;
-                            document.getElementById('remaining-attempts').innerText = pAttempts;
-                            document.getElementById('auth-screen').classList.add('d-none');
-                            document.getElementById('player-screen').classList.remove('d-none');
-                            document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
+                            if (document.getElementById('remaining-attempts')) document.getElementById('remaining-attempts').innerText = pAttempts;
+                            if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.add('d-none');
+                            if (document.getElementById('player-screen')) document.getElementById('player-screen').classList.remove('d-none');
+                            if (document.getElementById('player-display-room-code')) document.getElementById('player-display-room-code').innerText = `رمز الروم الحالي: ${pRoomCode}`;
                             startPlayerListeners();
                         } else {
                             localStorage.removeItem('sd_role');
@@ -169,23 +176,27 @@ function startPlayerListeners() {
         const alertStatusBox = document.getElementById('player-status-alert');
         
         if (data.gameStatus === "lobby") {
-            statusBadge.innerText = "بانتظار المدير يقفل الكلمة السرية... ⏳";
-            statusBadge.className = "text-warning";
-            alertStatusBox.classList.add('d-none');
-            document.getElementById('guess-input').disabled = true;
-            document.getElementById('guess-btn').disabled = true;
+            if (statusBadge) {
+                statusBadge.innerText = "بانتظار المدير يقفل الكلمة السرية... ⏳";
+                statusBadge.className = "text-warning";
+            }
+            if (alertStatusBox) alertStatusBox.classList.add('d-none');
+            if (document.getElementById('guess-input')) document.getElementById('guess-input').disabled = true;
+            if (document.getElementById('guess-btn')) document.getElementById('guess-btn').disabled = true;
         } else if (data.gameStatus === "playing") {
-            statusBadge.innerText = "الجيم شغال.. الكلمة مقفلة! 🔥";
-            statusBadge.className = "text-success";
+            if (statusBadge) {
+                statusBadge.innerText = "الجيم شغال.. الكلمة مقفلة! 🔥";
+                statusBadge.className = "text-success";
+            }
             
-            if (lastKnownStatus === "lobby") {
+            if (lastKnownStatus === "lobby" && alertStatusBox) {
                 alertStatusBox.innerText = "🚨 بدأت الجولة رسمياً! المدير قفل الكلمة السرية.. ابدأوا التخمين وحل التحديات الحين! 🔥";
                 alertStatusBox.classList.remove('d-none');
             }
             
             if (pAttempts > 0) {
-                document.getElementById('guess-input').disabled = false;
-                document.getElementById('guess-btn').disabled = false;
+                if (document.getElementById('guess-input')) document.getElementById('guess-input').disabled = false;
+                if (document.getElementById('guess-btn')) document.getElementById('guess-btn').disabled = false;
             }
         }
         lastKnownStatus = data.gameStatus;
@@ -214,11 +225,11 @@ function startPlayerListeners() {
             }
         }
 
-        document.getElementById('player-current-round').innerText = data.currentRound;
+        if (document.getElementById('player-current-round')) document.getElementById('player-current-round').innerText = data.currentRound;
 
         if (data.players && data.players[currentUID]) {
             pAttempts = data.players[currentUID].attempts !== undefined ? data.players[currentUID].attempts : 3;
-            document.getElementById('remaining-attempts').innerText = pAttempts;
+            if (document.getElementById('remaining-attempts')) document.getElementById('remaining-attempts').innerText = pAttempts;
         }
 
         if (data.gameStatus === "voting") {
@@ -230,14 +241,15 @@ function startPlayerListeners() {
         }
         
         if (data.gameStatus === "lobby" || data.gameStatus === "playing") {
-            document.getElementById('vote-screen').classList.add('d-none');
-            document.getElementById('player-screen').classList.remove('d-none');
+            if (document.getElementById('vote-screen')) document.getElementById('vote-screen').classList.add('d-none');
+            if (document.getElementById('player-screen')) document.getElementById('player-screen').classList.remove('d-none');
             hasFiredConfetti = false; 
         }
     });
 
     pDatabase.ref('rooms/' + pRoomCode + '/players/' + currentUID + '/hints').on('value', (snapshot) => {
         const hintsBox = document.getElementById('player-hints-box');
+        if (!hintsBox) return;
         hintsBox.innerHTML = "";
         const hints = snapshot.val();
         if (!hints) {
@@ -247,7 +259,6 @@ function startPlayerListeners() {
         for (let hintId in hints) {
             const hintText = hints[hintId];
             const hintItem = document.createElement('div');
-            hintItem.className = "msg";
             hintItem.style.backgroundColor = "#1e293b";
             hintItem.style.borderRight = "3px solid #00ffcc";
             hintItem.style.padding = "4px 8px";
@@ -326,9 +337,7 @@ function submitChallengeAnswer() {
             answer: answerText,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         }).then(() => {
-            pDatabase.ref('rooms/' + pRoomCode + '/players/' + currentUID).update({
-                challengeAnswer: answerText
-            });
+            pDatabase.ref('rooms/' + pRoomCode + '/players/' + currentUID).update({ challengeAnswer: answerText });
             answerInput.value = "";
             alert(`تم إرسال جوابك للتحدي [ ${currentR} ] بنجاح!`);
         });
@@ -347,10 +356,11 @@ function triggerFireworksEffect() {
 }
 
 function openVoteScreen(roomData) {
-    document.getElementById('player-screen').classList.add('d-none');
-    document.getElementById('vote-screen').classList.remove('d-none');
+    if (document.getElementById('player-screen')) document.getElementById('player-screen').classList.add('d-none');
+    if (document.getElementById('vote-screen')) document.getElementById('vote-screen').classList.remove('d-none');
 
     const voteGrid = document.getElementById('vote-players-list');
+    if (!voteGrid) return;
     voteGrid.innerHTML = "";
     const players = roomData.players || {};
     let currentUID = getOrCreateUID();
