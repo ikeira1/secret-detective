@@ -12,7 +12,7 @@ const firebaseConfig = {
     appId: "1:663254171790:web:464aec6dc57e30e05289df"
 };
 
-// روابط حساباتك الحقيقية (K e i r a) تظهر تلقائياً أسفل وفي هيدر الموقع
+// روابط الحسابات تظهر تلقائياً أسفل وفي هيدر الموقع
 const mySocialLinks = {
     donation: "https://tip.dokan.sa/keira?utm_medium=social&utm_source=heylink.me",
     tiktok: "https://www.tiktok.com/@ikeira12?is_from_webapp=1&sender_device=pc", 

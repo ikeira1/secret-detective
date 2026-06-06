@@ -268,7 +268,7 @@ function clearCurrentRoundAnswers() {
 }
 
 function resetFullGame() {
-    if (!confirm("هل أنت متأكد من إعادة تصفير الجيم والكلمة بالكامل للجولة 1 وفتح المحاولات؟")) return;
+    if (!confirm("هل أنت متأكد من إعادة تصفير الجيم والكلمة بالكامل للجولة 1 وفتح المحاولات Mom؟")) return;
     currentRound = 1;
 
     database.ref('rooms/' + roomCode).update({
@@ -322,7 +322,7 @@ function listenToChatForHost() {
         for (let msgId in messages) {
             const msgData = messages[msgId];
             const msgItem = document.createElement('div');
-            msgItem.className = "msg";
+            msgItem.className = "msg msg-host";
             msgItem.style.padding = "4px 8px";
             msgItem.innerHTML = `<strong>${msgData.sender}:</strong> ${msgData.text}`;
             chatBox.appendChild(msgItem);
