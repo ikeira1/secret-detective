@@ -37,7 +37,6 @@ function leaveRoomButton() {
 document.addEventListener("DOMContentLoaded", () => {
     getOrCreateUID();
     
-    // حل مشكلة الروابط تمنع فتح صفحة اللعبة مكررة
     if (typeof mySocialLinks !== 'undefined') {
         const setLink = (id, url) => {
             const el = document.getElementById(id);
@@ -79,8 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (document.getElementById('host-name')) document.getElementById('host-name').value = playerName;
 
                     if (typeof listenToPlayers === "function") listenToPlayers();
-                    if (typeof listenToChallengeAnswers === "function") listenToChallengeAnswers();
                     if (typeof listenToChatForHost === "function") listenToChatForHost();
+                    if (typeof listenToGameStatusForHost === "function") listenToGameStatusForHost();
                     if (typeof setupHostPresence === "function") setupHostPresence();
                 } else {
                     pDatabase = checkDb;
@@ -189,13 +188,11 @@ function startPlayerListeners() {
 
         lastKnownStatus = data.gameStatus;
 
-        // تحديث حي فوري لقائمة المشتركين
         const membersDiv = document.getElementById('player-all-members-list');
         if (membersDiv) {
             membersDiv.innerHTML = "";
             const hostRow = document.createElement('div');
-            hostRow.style.padding = "6px 10px"; hostRow.style.background = "rgba(99, 102, 241, 0.2)";
-            hostRow.style.borderRadius = "4px"; hostRow.style.borderRight = "3px solid #6366f1";
+            hostRow.className = "p-2 bg-dark rounded border-start border-primary mb-1";
             hostRow.innerHTML = `👑 <strong>${data.hostName}</strong> <span style="font-size:0.75rem; color:#a5b4fc;">(المدير)</span>`;
             membersDiv.appendChild(hostRow);
 
@@ -203,7 +200,8 @@ function startPlayerListeners() {
                 for (let idKey in data.players) {
                     const pItem = data.players[idKey];
                     const pRow = document.createElement('div');
-                    pRow.style.padding = "6px 10px"; pRow.style.background = "#1e293b"; pRow.style.borderRadius = "4px";
+                    pRow.className = "p-2 bg-secondary rounded text-white mb-1";
+                    pRow.style.backgroundColor = "#1e293b";
                     pRow.innerHTML = `🎮 ${pItem.name || "لاعب متصل"}`;
                     membersDiv.appendChild(pRow);
                 }
@@ -216,7 +214,6 @@ function startPlayerListeners() {
             pAttempts = data.players[currentUID].attempts !== undefined ? data.players[currentUID].attempts : 3;
             document.getElementById('remaining-attempts').innerText = pAttempts;
             
-            // تحديث التلميحات
             const hintsDiv = document.getElementById('player-hints-box');
             if (hintsDiv) {
                 hintsDiv.innerHTML = "";
@@ -224,8 +221,7 @@ function startPlayerListeners() {
                     for (let hKey in data.players[currentUID].hints) {
                         const hText = data.players[currentUID].hints[hKey];
                         const hBubble = document.createElement('div');
-                        hBubble.style.padding = "6px 10px"; hBubble.style.background = "rgba(0, 255, 204, 0.1)";
-                        hBubble.style.borderRight = "3px solid #00ffcc"; hBubble.style.borderRadius = "4px"; hBubble.style.marginBottom = "4px";
+                        hBubble.className = "p-2 bg-dark rounded border-start border-info mb-1";
                         hBubble.innerHTML = `💡 ${hText}`;
                         hintsDiv.appendChild(hBubble);
                     }
@@ -247,6 +243,7 @@ function startPlayerListeners() {
         }
     });
 
+    // مستمع الشات العام للشباب
     pDatabase.ref('rooms/' + pRoomCode + '/chat').on('value', (snapshot) => {
         const chatLog = document.getElementById('player-chat-log');
         if (!chatLog) return;
@@ -257,11 +254,31 @@ function startPlayerListeners() {
         for (let mKey in messages) {
             const msg = messages[mKey];
             const div = document.createElement('div');
-            div.className = msg.sender.includes("👑") ? "msg msg-host text-end align-self-start ms-auto mb-1" : "msg msg-player text-end align-self-start me-auto mb-1";
+            div.className = msg.sender.includes("👑") ? "msg msg-host text-end ms-auto mb-1" : "msg msg-player text-end me-auto mb-1";
             div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
             chatLog.appendChild(div);
         }
         chatLog.scrollTop = chatLog.scrollHeight;
+    });
+
+    // مستمع الشات الخاص باللاعب مع المدير
+    pDatabase.ref('rooms/' + pRoomCode + '/private_chats/' + currentUID).on('value', (snapshot) => {
+        const pChatLog = document.getElementById('player-private-chat-log');
+        if (!pChatLog) return;
+        pChatLog.innerHTML = "";
+        const messages = snapshot.val();
+        if (!messages) {
+            pChatLog.innerHTML = `<span class="empty-state text-muted">لا توجد رسائل سرية بينك وبين المدير بعد.</span>`;
+            return;
+        }
+        for (let mKey in messages) {
+            const msg = messages[mKey];
+            const div = document.createElement('div');
+            div.className = msg.sender === "👑 المدير" ? "msg msg-host text-end ms-auto mb-1" : "msg msg-player text-end me-auto mb-1";
+            div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
+            pChatLog.appendChild(div);
+        }
+        pChatLog.scrollTop = pChatLog.scrollHeight;
     });
 }
 
@@ -299,7 +316,7 @@ function submitPlayerGuess() {
                 if (newAttempts <= 0) {
                     document.getElementById('guess-input').disabled = true;
                     document.getElementById('guess-btn').disabled = true;
-                    alert("⚠️ انتهت محاولاتك!");
+                    alert("⚠️ انتهت محاولاتك في هذه الجولة!");
                 } else {
                     alert(`❌ غلط! باقي ${newAttempts} محاولات.`);
                 }
@@ -346,6 +363,19 @@ function sendChatMessage() {
     if (!msgText || !pDatabase) return;
 
     pDatabase.ref('rooms/' + pRoomCode + '/chat').push({ sender: playerName, text: msgText });
+    chatInput.value = "";
+}
+
+function sendPlayerPrivateChatMessage() {
+    const chatInput = document.getElementById('player-private-chat-message');
+    const msgText = chatInput.value.trim();
+    if (!msgText || !pDatabase) return;
+
+    let currentUID = getOrCreateUID();
+    pDatabase.ref('rooms/' + pRoomCode + '/private_chats/' + currentUID).push({
+        sender: playerName,
+        text: msgText
+    });
     chatInput.value = "";
 }
 

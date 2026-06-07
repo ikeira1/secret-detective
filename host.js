@@ -4,6 +4,7 @@ let myUID = "";
 let hostName = "";
 let currentRound = 1;
 let maxRounds = 5;
+let activePrivateChatPlayerUID = ""; // لتحديد اللاعب النشط حالياً في الشات الخاص للمدير
 
 function getOrCreateHostUID() {
     let uid = localStorage.getItem('sd_my_uid');
@@ -49,7 +50,6 @@ function initHost() {
         document.getElementById('host-max-rounds').innerText = maxRounds;
 
         listenToPlayers();
-        listenToChallengeAnswers();
         listenToChatForHost();
         listenToGameStatusForHost();
     }).catch(err => { alert("خطأ: " + err.message); });
@@ -86,10 +86,11 @@ function listenToPlayers() {
                     <span style="font-weight:bold; color:#fff;">🎮 ${player.name}</span>
                     <div style="font-size:0.8rem; color:#94a3b8;">المحاولات: <strong style="color:#ef4444">${currentAttempts}</strong> | تلميحات: <strong>${hintCount}</strong></div>
                 </div>
-                <div>
-                    <button onclick="giveManualHint('${idKey}', '${player.name}')" class="btn btn-sm btn-info text-dark">💡 تلميح</button>
-                    <button onclick="modifyPlayerAttempts('${idKey}', ${currentAttempts})" class="btn btn-sm btn-warning">⚙️ محاولات</button>
-                    <button onclick="kickPlayer('${idKey}', '${player.name}')" class="btn btn-sm btn-danger">❌ طرد</button>
+                <div class="d-flex gap-1">
+                    <button onclick="openHostPrivateChat('${idKey}', '${player.name}')" class="btn btn-sm btn-light py-1">💬 خاص</button>
+                    <button onclick="giveManualHint('${idKey}', '${player.name}')" class="btn btn-sm btn-info text-dark py-1">💡 تلميح</button>
+                    <button onclick="modifyPlayerAttempts('${idKey}', ${currentAttempts})" class="btn btn-sm btn-warning py-1">⚙️</button>
+                    <button onclick="kickPlayer('${idKey}', '${player.name}')" class="btn btn-sm btn-danger py-1">❌</button>
                 </div>
             `;
             playersListDiv.appendChild(pRow);
@@ -97,8 +98,51 @@ function listenToPlayers() {
     });
 }
 
-function listenToChallengeAnswers() {
-    // مستمع عام لتحديث الأجوبة بلوحة التحكم
+// فتح شات خاص مع لاعب محدد للمدير
+function openHostPrivateChat(playerUID, pName) {
+    activePrivateChatPlayerUID = playerUID;
+    document.getElementById('host-target-player-name').innerText = pName;
+    document.getElementById('host-private-chat-section').classList.remove('d-none');
+
+    // قطع الاتصال بالمستمع القديم إن وجد والمزامنة مع الشات الجديد
+    database.ref('rooms/' + roomCode + '/private_chats/' + playerUID).off();
+    database.ref('rooms/' + roomCode + '/private_chats/' + playerUID).on('value', (snapshot) => {
+        const pChatLog = document.getElementById('host-private-chat-log');
+        if (!pChatLog) return;
+        pChatLog.innerHTML = "";
+        const messages = snapshot.val();
+        if (!messages) {
+            pChatLog.innerHTML = `<span class="empty-state">محادثة سرية نظيفة، أرسل أول رسالة...</span>`;
+            return;
+        }
+        for (let mKey in messages) {
+            const msg = messages[mKey];
+            const div = document.createElement('div');
+            div.className = msg.sender === "👑 المدير" ? "msg msg-host text-end ms-auto mb-1" : "msg msg-player text-end me-auto mb-1";
+            div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
+            pChatLog.appendChild(div);
+        }
+        pChatLog.scrollTop = pChatLog.scrollHeight;
+    });
+}
+
+function closeHostPrivateChat() {
+    document.getElementById('host-private-chat-section').classList.add('d-none');
+    if (activePrivateChatPlayerUID) {
+        database.ref('rooms/' + roomCode + '/private_chats/' + activePrivateChatPlayerUID).off();
+    }
+}
+
+function sendHostPrivateChatMessage() {
+    const chatInput = document.getElementById('host-private-chat-message');
+    const msgText = chatInput.value.trim();
+    if (!msgText || !activePrivateChatPlayerUID) return;
+
+    database.ref('rooms/' + roomCode + '/private_chats/' + activePrivateChatPlayerUID).push({
+        sender: "👑 المدير",
+        text: msgText
+    });
+    chatInput.value = "";
 }
 
 function listenToChatForHost() {
@@ -125,18 +169,29 @@ function listenToGameStatusForHost() {
         const data = snapshot.val();
         if (!data) return;
 
+        currentRound = data.currentRound || 1;
+        document.getElementById('host-current-round-text').innerText = currentRound;
+
+        // تحديث الكلمة السرية المقفلة داخل الصندوق للمدير بشكل ثابت ومستمر
+        const wordDisplay = document.getElementById('host-current-word-display');
+        if (data.secretWord) {
+            wordDisplay.innerText = `🔑 [ ${data.secretWord} ]`;
+            wordDisplay.className = "fs-4 text-center text-success font-weight-bold animated-pulse";
+        } else {
+            wordDisplay.innerText = "🔒 لم تُحدد بعد";
+            wordDisplay.className = "fs-4 text-center text-warning font-weight-bold";
+        }
+
         const adminStatusBadge = document.getElementById('admin-game-status-badge');
         if (data.gameStatus === "lobby") {
             adminStatusBadge.innerText = "انتظار قفل الكلمة السرية 🔑";
             document.getElementById('btn-lock-word').disabled = false;
-            document.getElementById('btn-reset-lobby').classList.add('d-none');
         } else if (data.gameStatus === "playing") {
             adminStatusBadge.innerText = "الجولة شغالة.. التخمين مفتوح! 🏃‍♂️🔥";
             document.getElementById('btn-lock-word').disabled = true;
-            document.getElementById('btn-reset-lobby').classList.remove('d-none');
         } else if (data.gameStatus === "voting") {
             adminStatusBadge.innerText = "🗳️ مرحلة التصويت الإجباري نشطة!";
-            document.getElementById('btn-reset-lobby').classList.remove('d-none');
+            document.getElementById('btn-lock-word').disabled = true;
             showLiveVotesToAdmin(data.players, data.winnerWordPlayer);
         }
     });
@@ -176,18 +231,95 @@ function lockSecretWord() {
     });
 }
 
-function resetRoomToLobby() {
-    if (!confirm("هل أنت متأكد من إنهاء الجولة والعودة للوبي لبدء قيم جديد؟")) return;
+// ⏭️ الانتقال للجولة التالية بشكل سليم وصيانة البيانات
+function nextRound() {
+    if (currentRound >= maxRounds) {
+        alert("⚠️ لقد وصلت للحد الأقصى من الجولات المحددة للمشروع!");
+        return;
+    }
+    if (!confirm("هل تريد الانتقال للجولة التالية؟ سيتم تصفير الكلمة والمحاولات ورفع رقم الجولة.")) return;
+
     database.ref('rooms/' + roomCode + '/players').once('value', (snap) => {
         const players = snap.val();
         if (players) {
             for (let idKey in players) {
-                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ attempts: 3, challengeAnswer: "", votedFor: "", hints: null, manualHintCount: 0 });
+                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ 
+                    attempts: 3, 
+                    challengeAnswer: "", 
+                    votedFor: "", 
+                    hints: null, 
+                    manualHintCount: 0 
+                });
             }
         }
-        database.ref('rooms/' + roomCode).update({ gameStatus: "lobby", secretWord: "", winnerWordPlayer: "" }).then(() => {
+        database.ref('rooms/' + roomCode).update({ 
+            currentRound: currentRound + 1, 
+            gameStatus: "lobby", 
+            secretWord: "", 
+            winnerWordPlayer: "" 
+        }).then(() => {
             database.ref('rooms/' + roomCode + '/chat').remove();
-            alert("🔄 تم العودة للوبي بنجاح!");
+            const logDiv = document.getElementById('host-challenges-log');
+            if (logDiv) logDiv.innerHTML = "";
+            alert(`✅ تم الانتقال بنجاح للجولة رقم ${currentRound + 1}!`);
+        });
+    });
+}
+
+// 🔄 إعادة تعيين نفس الجولة الحالية بدون رفع الرقم
+function resetCurrentRound() {
+    if (!confirm("هل أنت متأكد من إعادة تعيين نفس الجولة الحالية وتصفير المحاولات والكلمة؟")) return;
+
+    database.ref('rooms/' + roomCode + '/players').once('value', (snap) => {
+        const players = snap.val();
+        if (players) {
+            for (let idKey in players) {
+                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ 
+                    attempts: 3, 
+                    challengeAnswer: "", 
+                    votedFor: "", 
+                    hints: null, 
+                    manualHintCount: 0 
+                });
+            }
+        }
+        database.ref('rooms/' + roomCode).update({ 
+            gameStatus: "lobby", 
+            secretWord: "", 
+            winnerWordPlayer: "" 
+        }).then(() => {
+            database.ref('rooms/' + roomCode + '/chat').remove();
+            const logDiv = document.getElementById('host-challenges-log');
+            if (logDiv) logDiv.innerHTML = "";
+            alert("🔄 تم إعادة الجولة الحالية وتصفير البيانات للوبي الجولة!");
+        });
+    });
+}
+
+function resetRoomToLobby() {
+    if (!confirm("هل أنت متأكد من إنهاء اللعبة بالكامل؟ سيتم تصفير الغرفة والعودة للجولة الأولى.")) return;
+    database.ref('rooms/' + roomCode + '/players').once('value', (snap) => {
+        const players = snap.val();
+        if (players) {
+            for (let idKey in players) {
+                database.ref('rooms/' + roomCode + '/players/' + idKey).update({ 
+                    attempts: 3, 
+                    challengeAnswer: "", 
+                    votedFor: "", 
+                    hints: null, 
+                    manualHintCount: 0 
+                });
+            }
+        }
+        database.ref('rooms/' + roomCode).update({ 
+            currentRound: 1, 
+            gameStatus: "lobby", 
+            secretWord: "", 
+            winnerWordPlayer: "" 
+        }).then(() => {
+            database.ref('rooms/' + roomCode + '/chat').remove();
+            database.ref('rooms/' + roomCode + '/private_chats').remove();
+            alert("🔄 تم إنهاء الجلسة والعودة للوبي الأول بنجاح!");
         });
     });
 }

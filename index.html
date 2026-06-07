@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>شفرة المحقق السري 🕵️‍♂️</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- الهيدر المرن -->
     <header class="custom-header">
         <div class="header-brand">
             <span>🕵️‍♂️</span>
@@ -26,28 +24,27 @@
     </header>
 
     <div class="container mt-4">
-        <!-- 1. شاشة الدخول والتسجيل -->
         <div id="auth-screen" class="row justify-content-center">
             <div class="col-md-6">
                 <div class="game-card text-center">
                     <h2 class="mb-4 style-title" style="color: #00ffcc;">🔑 الدخول للعبة</h2>
                     <div class="mb-3 text-start">
                         <label class="form-label" style="color: #94a3b8;">اسمك الكريم:</label>
-                        <input type="text" id="player-name" class="form-control text-center bg-dark text-white" placeholder="اكتب اسمك هنا..." style="border-color: #22293f;">
+                        <input type="text" id="player-name" class="form-control text-center bg-dark text-white" placeholder="اكتب اسمك هنا...">
                     </div>
                     <div class="mb-4 text-start">
                         <label class="form-label" style="color: #94a3b8;">رمز الروم (إذا كنت لاعب):</label>
-                        <input type="text" id="room-code" class="form-control text-center bg-dark text-white" placeholder="مثال: 1078" style="border-color: #22293f;">
+                        <input type="text" id="room-code" class="form-control text-center bg-dark text-white" placeholder="مثال: 1078">
                     </div>
                     <div class="d-grid gap-2">
                         <button onclick="initPlayer()" class="btn btn-lg" style="background: linear-gradient(135deg, #ff007c, #7928ca); color:#fff; font-weight:bold;">🎮 دخول كـ لاعب</button>
                         <div class="hr-text text-muted my-2">أو إذا كنت أنت ستريمر/مدير الجلسة:</div>
                         <div class="mb-3 text-start">
-                            <input type="text" id="host-name" class="form-control text-center bg-dark text-white" placeholder="اسم المدير (مثال: أحمد)" style="border-color: #22293f;">
+                            <input type="text" id="host-name" class="form-control text-center bg-dark text-white" placeholder="اسم المدير (مثال: أحمد)">
                         </div>
                         <div class="mb-3 text-start">
                             <label class="form-label" style="color: #94a3b8;">إجمالي الجولات المخططة:</label>
-                            <input type="number" id="total-rounds" class="form-control text-center bg-dark text-white" value="5" min="1" style="border-color: #22293f;">
+                            <input type="number" id="total-rounds" class="form-control text-center bg-dark text-white" value="5" min="1">
                         </div>
                         <button onclick="initHost()" class="btn" style="background: linear-gradient(135deg, #00ffcc, #00a3ff); color:#0d0f18; font-weight:bold;">👑 إنشاء روم جديد كـ مدير</button>
                     </div>
@@ -55,51 +52,69 @@
             </div>
         </div>
 
-        <!-- 2. لوحة تحكم المدير (Host Screen) -->
         <div id="host-screen" class="row d-none">
             <div class="col-md-5">
                 <div class="game-card">
                     <h3 class="text-warning mb-3">👑 لوحة التحكم الملكية</h3>
                     <h4 id="display-room-code" class="p-2 bg-dark text-center text-info rounded">رمز الروم: ----</h4>
+                    
+                    <div class="p-3 my-3 bg-dark rounded border border-warning">
+                        <div class="mb-1 text-muted" style="font-size:0.85rem;">الكلمة السرية النشطة حالياً:</div>
+                        <div id="host-current-word-display" class="fs-4 text-center text-warning font-weight-bold">🔒 لم تُحدد بعد</div>
+                        <div class="mt-2 text-center text-light"><small>الجولة الحالية: <span id="host-current-round-text" class="text-info font-weight-bold">1</span> / <span id="host-max-rounds">5</span></small></div>
+                    </div>
+
                     <div class="mt-3">
                         <span class="badge bg-secondary" style="border: 1px solid #00ffcc; color:#00ffcc;">حالة الجلسة: <span id="admin-game-status-badge">انتظار الكلمة</span></span>
-                        <div class="mt-2"><small class="text-muted">الجولات الإجمالية: <span id="host-max-rounds">5</span></small></div>
                     </div>
                     <hr style="border-color:#22293f;">
+                    
                     <div class="mb-3">
                         <label class="form-label">⚙️ قفل الكلمة السرية للجولة الحالية:</label>
                         <input type="text" id="secret-word-input" class="form-control bg-dark text-white" placeholder="اكتب الكلمة المحورية هنا...">
                         <button id="btn-lock-word" onclick="lockSecretWord()" class="btn btn-primary w-100 mt-2">🔒 قفل وتثبيت الكلمة للكل</button>
                     </div>
-                    <div class="d-grid gap-2 mt-4">
-                        <button id="btn-reset-lobby" onclick="resetRoomToLobby()" class="btn btn-danger btn-sm d-none">🔄 إنهاء الجولة والعودة للوبي</button>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button onclick="nextRound()" class="btn btn-success w-100 btn-sm">⏭️ الجولة التالية</button>
+                        <button onclick="resetCurrentRound()" class="btn btn-warning w-100 btn-sm text-dark">🔄 إعادة نفس الجولة</button>
+                    </div>
+                    <div class="d-grid gap-2 mt-2">
+                        <button id="btn-reset-lobby" onclick="resetRoomToLobby()" class="btn btn-danger btn-sm">🔄 إنهاء اللعبة والعودة للوبي</button>
                     </div>
                 </div>
 
                 <div class="game-card">
-                    <h4>👥 اللاعبين المتصلين الحين</h4>
-                    <div id="host-players-list" class="d-flex flex-column gap-2 mt-3">
-                        <!-- جلب حي للشباب المتواجدين -->
-                    </div>
+                    <h4>👥 اللاعبين والمحادثات الخاصة</h4>
+                    <div id="host-players-list" class="d-flex flex-column gap-2 mt-3"></div>
                 </div>
             </div>
 
             <div class="col-md-7">
-                <div class="game-card">
-                    <h4 class="text-info">⏱️ مركز مراقبة الإجابات والتصويت</h4>
-                    <div id="host-challenges-log" class="box-log" style="min-height: 200px;">
-                        <!-- الأجوبة والتصويت المباشر يطلع هنا للمدير -->
+                <div id="host-private-chat-section" class="game-card d-none" style="border: 1px solid #00ffcc;">
+                    <h5 class="text-info d-flex justify-content-between align-items-center">
+                        <span>💬 شات خاص مع: <strong id="host-target-player-name" class="text-white">--</strong></span>
+                        <button onclick="closeHostPrivateChat()" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.75rem;">إغلاق</button>
+                    </h5>
+                    <div id="host-private-chat-log" class="box-log mb-2" style="height: 140px;"></div>
+                    <div class="input-group">
+                        <input type="text" id="host-private-chat-message" class="form-control bg-dark text-white" placeholder="اكتب رسالة خاصة وسرية بالكامل...">
+                        <button onclick="sendHostPrivateChatMessage()" class="btn btn-info text-dark">إرسال خاص</button>
                     </div>
                 </div>
 
                 <div class="game-card">
-                    <h4>💬 شات الروم العام (خاص بالمدير)</h4>
-                    <div id="host-chat-log" class="box-log mb-2" style="height: 180px;"></div>
+                    <h4 class="text-info">⏱️ مركز مراقبة الإجابات والتصويت</h4>
+                    <div id="host-challenges-log" class="box-log" style="min-height: 180px;"></div>
+                </div>
+
+                <div class="game-card">
+                    <h4>💬 شات الروم العام</h4>
+                    <div id="host-chat-log" class="box-log mb-2" style="height: 150px;"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 3. واجهة اللاعب (Player Screen) -->
         <div id="player-screen" class="row d-none">
             <div class="col-md-6 mx-auto">
                 <div id="player-status-alert" class="alert alert-info text-center d-none" style="font-weight: bold;"></div>
@@ -113,9 +128,18 @@
                     <h4 class="mt-3">التحدي أو الجولة: <span id="player-current-round" class="text-info">1</span></h4>
                 </div>
 
+                <div class="game-card" style="border: 1px solid #ff007c;">
+                    <h4 class="text-danger">🤫 المحادثة السرية الخاصة مع المدير</h4>
+                    <div id="player-private-chat-log" class="box-log mb-2" style="height: 120px;"></div>
+                    <div class="input-group">
+                        <input type="text" id="player-private-chat-message" class="form-control bg-dark text-white" placeholder="أرسل شيء خاص للمدير بس...">
+                        <button onclick="sendPlayerPrivateChatMessage()" class="btn btn-danger">إرسال سري</button>
+                    </div>
+                </div>
+
                 <div class="game-card">
                     <h4 class="text-center">🎮 خانة التخمين السري</h4>
-                    <p class="text-muted text-center" style="font-size:0.85rem;">حاول حزر الكلمة السرية المحورية الثابتة (تستهلك من محاولاتك)</p>
+                    <p class="text-muted text-center" style="font-size:0.85rem;">حاول حزر الكلمة السرية المحورية الثابتة</p>
                     <div class="input-group mb-2">
                         <input type="text" id="guess-input" class="form-control text-center bg-dark text-white" placeholder="اكتب تخمينك للكلمة هنا..." disabled>
                         <button onclick="submitPlayerGuess()" id="guess-btn" class="btn btn-warning" disabled>تخمين</button>
@@ -126,12 +150,12 @@
                 </div>
 
                 <div class="game-card">
-                    <h4>💡 تلميحاتك السرية الخاصة (من المدير لك بس)</h4>
+                    <h4>💡 تلميحاتك السرية الخاصة</h4>
                     <div id="player-hints-box" class="box-log" style="max-height:120px;"></div>
                 </div>
 
                 <div class="game-card">
-                    <h4>💬 شات الجلسة (للتمويه والحديث)</h4>
+                    <h4>💬 شات الجلسة العام (للتمويه والحديث)</h4>
                     <div id="player-chat-log" class="box-log mb-2" style="height: 150px;"></div>
                     <div class="input-group">
                         <input type="text" id="chat-message" class="form-control bg-dark text-white" placeholder="اكتب رسالة للتمويه...">
@@ -146,23 +170,19 @@
             </div>
         </div>
 
-        <!-- 4. شاشة التصويت الإجباري (Vote Screen) -->
         <div id="vote-screen" class="row d-none">
             <div class="col-md-6 mx-auto text-center">
                 <div class="game-card" style="border: 2px solid #8b5cf6;">
                     <h2 style="color:#a78bfa;">🗳️ مرحلة التصويت الإجباري!</h2>
                     <p class="lead">أحد المحققين قفط الكلمة السرية الصحيحة! خمن الحين وصوت على اللاعب اللي تعتقد إنه هو اللي عرف الكلمة وفوز الجيم:</p>
                     <hr style="border-color:#8b5cf6;">
-                    <div id="vote-players-list" class="d-flex flex-column gap-2 mt-4">
-                        <!-- أزرار اللاعبين للتصويت -->
-                    </div>
+                    <div id="vote-players-list" class="d-flex flex-column gap-2 mt-4"></div>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- المكتبات الخارجية والسكربتات بالترتيب التزامني السليم -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>

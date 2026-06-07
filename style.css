@@ -104,6 +104,16 @@ body {
 .empty-state { color: #475569; text-align: center; font-size: 0.9rem; padding: 10px 0; }
 .text-purple { color: #a78bfa !important; }
 
+.form-control {
+    border: 1px solid #22293f;
+}
+.form-control:focus {
+    background-color: #1e2538 !important;
+    color: #fff;
+    border-color: #6366f1;
+    box-shadow: none;
+}
+
 @media (max-width: 576px) {
     .header-links, .header-brand { justify-content: center; width: 100%; }
 }
